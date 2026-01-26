@@ -1,0 +1,1 @@
+ALTER TABLE "api_tokens" ALTER COLUMN "token_prefix" SET DATA TYPE varchar(12);
