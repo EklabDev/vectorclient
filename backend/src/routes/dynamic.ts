@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
 import { db } from '../config/database';
-import { endpoints, callLogs, endpointApiTokens, apiTokens, endpointSchemas } from '../database/schema';
+import { endpoints, callLogs, endpointApiTokens, apiTokens, endpointSchemas, schemas } from '../database/schema';
 import { eq, and, asc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { EncryptionService } from '../utils/encryption';
@@ -250,14 +250,20 @@ export async function dynamicRoutes(app: FastifyInstance) {
             }
 
             // Get the first associated schema for this endpoint (ordered by order field)
+            // Join with schemas table to get weaviateCollectionId
             const associatedSchemas = await db
-                .select({ schemaId: endpointSchemas.schemaId })
+                .select({ 
+                    schemaId: endpointSchemas.schemaId,
+                    weaviateCollectionId: schemas.weaviateCollectionId
+                })
                 .from(endpointSchemas)
+                .innerJoin(schemas, eq(endpointSchemas.schemaId, schemas.id))
                 .where(eq(endpointSchemas.endpointId, endpointId))
                 .orderBy(asc(endpointSchemas.order))
                 .limit(1);
 
             const schemaId = associatedSchemas.length > 0 ? associatedSchemas[0].schemaId : null;
+            const weaviateCollectionId = associatedSchemas.length > 0 ? associatedSchemas[0].weaviateCollectionId : null;
 
             // Get request body and parse it
             const originalRequestBody = request.body as any;
@@ -281,10 +287,11 @@ export async function dynamicRoutes(app: FastifyInstance) {
                 user_id: userId,
                 endpoint_id: endpointId,
                 ...(schemaId && { schema_id: schemaId }),
+                ...(weaviateCollectionId && { weaviate_collection_id: weaviateCollectionId }),
                 // Merge any additional fields from the original request body
                 ...Object.keys(requestBodyObj).reduce((acc, key) => {
                     // Skip base schema fields if they were in the original body
-                    if (key !== 'user_id' && key !== 'endpoint_id' && key !== 'schema_id') {
+                    if (key !== 'user_id' && key !== 'endpoint_id' && key !== 'schema_id' && key !== 'weaviate_collection_id') {
                         acc[key] = requestBodyObj[key];
                     }
                     return acc;

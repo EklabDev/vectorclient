@@ -5,6 +5,7 @@ import { db } from '../config/database';
 import { schemas } from '../database/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { WeaviateService } from '../services/weaviateService';
 
 const createSchemaSchema = z.object({
   name: z.string().min(1),
@@ -35,6 +36,7 @@ export async function schemaRoutes(app: FastifyInstance) {
           content: schemas.content,
           version: schemas.version,
           isPublished: schemas.isPublished,
+          weaviateCollectionId: schemas.weaviateCollectionId,
           createdAt: schemas.createdAt,
           updatedAt: schemas.updatedAt,
         })
@@ -75,16 +77,35 @@ export async function schemaRoutes(app: FastifyInstance) {
       const { userId } = request.user as { userId: string };
       const body = createSchemaSchema.parse(request.body);
 
+      const schemaId = uuidv4();
+      let weaviateCollectionId: string | null = null;
+
+      // Sync to Weaviate if published
+      if (body.isPublished) {
+        try {
+          weaviateCollectionId = await WeaviateService.syncSchemaToWeaviate(
+            schemaId,
+            body.name,
+            body.content,
+            body.description || null
+          );
+        } catch (weaviateError) {
+          console.error('Failed to sync schema to Weaviate:', weaviateError);
+          // Continue with creation even if Weaviate sync fails
+        }
+      }
+
       const [newSchema] = await db
         .insert(schemas)
         .values({
-          id: uuidv4(),
+          id: schemaId,
           userId,
           name: body.name,
           description: body.description || null,
           content: body.content,
           version: 1,
           isPublished: body.isPublished ?? false,
+          weaviateCollectionId: weaviateCollectionId,
         })
         .returning();
 
@@ -123,13 +144,56 @@ export async function schemaRoutes(app: FastifyInstance) {
       };
       
       // Increment version if content is being updated
+      const newVersion = body.content !== undefined ? existing.version + 1 : existing.version;
       if (body.content !== undefined) {
         updateData.content = body.content;
-        updateData.version = existing.version + 1;
+        updateData.version = newVersion;
       }
       if (body.name !== undefined) updateData.name = body.name;
       if (body.description !== undefined) updateData.description = body.description;
+      
+      // Handle publishing/unpublishing
+      const willBePublished = body.isPublished !== undefined ? body.isPublished : existing.isPublished;
+      const isBeingPublished = body.isPublished === true && !existing.isPublished;
+      const isBeingUnpublished = body.isPublished === false && existing.isPublished;
+      
       if (body.isPublished !== undefined) updateData.isPublished = body.isPublished;
+
+      // Sync to Weaviate
+      if (willBePublished) {
+        try {
+          // If being published for the first time or content/name/description changed, sync to Weaviate
+          if (isBeingPublished || body.content !== undefined || body.name !== undefined || body.description !== undefined) {
+            const collectionName = existing.weaviateCollectionId
+              ? await WeaviateService.updateSchemaInWeaviate(
+                  id,
+                  body.name !== undefined ? body.name : existing.name,
+                  body.content !== undefined ? body.content : existing.content,
+                  newVersion,
+                  body.description !== undefined ? body.description : existing.description
+                )
+              : await WeaviateService.syncSchemaToWeaviate(
+                  id,
+                  body.name !== undefined ? body.name : existing.name,
+                  body.content !== undefined ? body.content : existing.content,
+                  body.description !== undefined ? body.description : existing.description
+                );
+            updateData.weaviateCollectionId = collectionName;
+          }
+        } catch (weaviateError) {
+          console.error('Failed to sync schema to Weaviate:', weaviateError);
+          // Continue with update even if Weaviate sync fails
+        }
+      } else if (isBeingUnpublished && existing.weaviateCollectionId) {
+        // If unpublishing, delete from Weaviate
+        try {
+          await WeaviateService.deleteCollectionFromWeaviate(existing.weaviateCollectionId);
+          updateData.weaviateCollectionId = null;
+        } catch (weaviateError) {
+          console.error('Failed to delete schema from Weaviate:', weaviateError);
+          // Continue with update even if Weaviate deletion fails
+        }
+      }
 
       const [updated] = await db
         .update(schemas)
@@ -165,9 +229,78 @@ export async function schemaRoutes(app: FastifyInstance) {
         return;
       }
 
+      // Delete from Weaviate if it exists
+      if (existing.weaviateCollectionId) {
+        try {
+          await WeaviateService.deleteCollectionFromWeaviate(existing.weaviateCollectionId);
+        } catch (weaviateError) {
+          console.error('Failed to delete schema from Weaviate:', weaviateError);
+          // Continue with deletion even if Weaviate deletion fails
+        }
+      }
+
       await db.delete(schemas).where(eq(schemas.id, id));
 
       return { message: 'Schema deleted successfully' };
+    } catch (error) {
+      reply.code(500).send({ message: (error as Error).message });
+    }
+  });
+
+  // Manually sync a schema to Weaviate (for existing schemas that weren't synced)
+  app.post('/:id/sync-weaviate', async (request, reply) => {
+    try {
+      const { userId } = request.user as { userId: string };
+      const { id } = request.params as { id: string };
+
+      // Verify ownership
+      const [existing] = await db
+        .select()
+        .from(schemas)
+        .where(and(eq(schemas.id, id), eq(schemas.userId, userId)))
+        .limit(1);
+
+      if (!existing) {
+        reply.code(404).send({ message: 'Schema not found' });
+        return;
+      }
+
+      if (!existing.isPublished) {
+        reply.code(400).send({ message: 'Schema must be published before syncing to Weaviate' });
+        return;
+      }
+
+      // Sync to Weaviate
+      let weaviateCollectionId: string | null = null;
+      try {
+        weaviateCollectionId = existing.weaviateCollectionId
+          ? await WeaviateService.updateSchemaInWeaviate(
+              id,
+              existing.name,
+              existing.content,
+              existing.version,
+              existing.description
+            )
+          : await WeaviateService.syncSchemaToWeaviate(
+              id,
+              existing.name,
+              existing.content,
+              existing.description
+            );
+
+        // Update the weaviateCollectionId in the database
+        await db
+          .update(schemas)
+          .set({ weaviateCollectionId })
+          .where(eq(schemas.id, id));
+
+        return { message: 'Schema synced to Weaviate successfully', weaviateCollectionId };
+      } catch (weaviateError) {
+        reply.code(500).send({ 
+          message: 'Failed to sync schema to Weaviate', 
+          error: (weaviateError as Error).message 
+        });
+      }
     } catch (error) {
       reply.code(500).send({ message: (error as Error).message });
     }
