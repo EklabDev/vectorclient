@@ -3,14 +3,6 @@ import { useAuthStore } from '../store/authStore';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export class ApiClient {
-  private static getHeaders() {
-    const token = useAuthStore.getState().token;
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    };
-  }
-
   static async request<T>(
     endpoint: string,
     options: RequestInit = {}

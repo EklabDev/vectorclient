@@ -44,7 +44,7 @@ export function DashboardPage() {
       // Fetch requests count for last 24 hours
       let requests24h = 0;
       try {
-        const statsData = await ApiClient.getRequests24h();
+        const statsData = await ApiClient.getRequests24h() as { count?: number };
         requests24h = statsData.count || 0;
       } catch (err) {
         // If stats endpoint fails, just use 0

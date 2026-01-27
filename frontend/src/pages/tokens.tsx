@@ -63,7 +63,7 @@ export function TokensPage() {
     e.preventDefault();
     try {
       setError('');
-      const result = await ApiClient.createToken(newTokenName, newTokenExpiresIn);
+      const result = await ApiClient.createToken(newTokenName, newTokenExpiresIn) as { token: string; tokenId: string };
       setCreatedToken({ token: result.token, tokenId: result.tokenId });
       setNewTokenName('');
       setNewTokenExpiresIn(undefined);
@@ -103,7 +103,7 @@ export function TokensPage() {
     try {
       setLogsLoading(true);
       setLogsError('');
-      const response = await ApiClient.getTokenLogs(tokenId, { limit: 100, sortOrder: 'desc' });
+      const response = await ApiClient.getTokenLogs(tokenId, { limit: 100, sortOrder: 'desc' }) as { logs?: CallLog[] };
       if (response && response.logs) {
         setTokenLogs(response.logs);
       } else {

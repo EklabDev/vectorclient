@@ -233,7 +233,7 @@ export function EndpointsPage() {
     try {
       setLogsLoading(true);
       setLogsError('');
-      const response = await ApiClient.getLogs(endpointId, { limit: 100, sortOrder: 'desc' });
+      const response = await ApiClient.getLogs(endpointId, { limit: 100, sortOrder: 'desc' }) as { logs?: CallLog[] };
       if (response && response.logs) {
         setCallLogs(response.logs);
       } else {
