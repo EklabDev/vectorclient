@@ -11,11 +11,17 @@ ENV VITE_API_URL=${VITE_API_URL}
 
 RUN npm run build
 
+# Install preview globally in builder stage
+RUN npm install -g preview
+
 FROM --platform=linux/arm64/v8 node:20-alpine
 
 WORKDIR /app
+
+# Copy built files and global node_modules (which includes preview)
 COPY --from=builder /app/dist .
-RUN npm install -g preview
+COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 EXPOSE 3000
 
