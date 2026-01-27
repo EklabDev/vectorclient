@@ -80,19 +80,17 @@ export async function schemaRoutes(app: FastifyInstance) {
       const schemaId = uuidv4();
       let weaviateCollectionId: string | null = null;
 
-      // Sync to Weaviate if published
-      if (body.isPublished) {
-        try {
-          weaviateCollectionId = await WeaviateService.syncSchemaToWeaviate(
-            schemaId,
-            body.name,
-            body.content,
-            body.description || null
-          );
-        } catch (weaviateError) {
-          console.error('Failed to sync schema to Weaviate:', weaviateError);
-          // Continue with creation even if Weaviate sync fails
-        }
+      // Always sync to Weaviate when creating a new schema
+      try {
+        weaviateCollectionId = await WeaviateService.syncSchemaToWeaviate(
+          schemaId,
+          body.name,
+          body.content,
+          body.description || null
+        );
+      } catch (weaviateError) {
+        console.error('Failed to sync schema to Weaviate:', weaviateError);
+        // Continue with creation even if Weaviate sync fails
       }
 
       const [newSchema] = await db

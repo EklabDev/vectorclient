@@ -8,6 +8,7 @@ interface Schema {
   content: string;
   version: number;
   isPublished: boolean;
+  weaviateCollectionId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,6 +116,18 @@ export function SchemasPage() {
     }
   };
 
+  const handleTogglePublish = async (schema: Schema) => {
+    try {
+      setError('');
+      await ApiClient.updateSchema(schema.id, {
+        isPublished: !schema.isPublished,
+      });
+      await loadSchemas();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -193,6 +206,32 @@ export function SchemasPage() {
             <h2 style={{ marginTop: 0, color: '#fff' }}>
               {viewMode ? 'View Schema' : editingSchema ? 'Edit Schema' : 'Create New Schema'}
             </h2>
+            {viewMode && editingSchema && (
+              <div style={{ 
+                marginBottom: '16px', 
+                padding: '12px', 
+                backgroundColor: '#18181b', 
+                borderRadius: '6px',
+                fontSize: '12px',
+                color: '#a1a1aa'
+              }}>
+                <div style={{ marginBottom: '4px' }}>
+                  <strong>Schema ID:</strong> <span style={{ fontFamily: 'monospace' }}>{editingSchema.id}</span>
+                </div>
+                {editingSchema.weaviateCollectionId && (
+                  <div>
+                    <strong>Weaviate Collection ID:</strong> <span style={{ fontFamily: 'monospace' }}>{editingSchema.weaviateCollectionId}</span>
+                  </div>
+                )}
+                <div style={{ marginTop: '4px' }}>
+                  <strong>Version:</strong> {editingSchema.version} | <strong>Status:</strong> {editingSchema.isPublished ? (
+                    <span style={{ color: '#10b981' }}>Published</span>
+                  ) : (
+                    <span style={{ color: '#a1a1aa' }}>Draft</span>
+                  )}
+                </div>
+              </div>
+            )}
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
@@ -379,7 +418,15 @@ export function SchemasPage() {
                 ) : (
                   <span style={{ color: '#a1a1aa' }}>Draft</span>
                 )}</div>
-                <div>Updated: {formatDate(schema.updatedAt)}</div>
+                <div style={{ marginTop: '4px', wordBreak: 'break-all' }}>
+                  <div>Schema ID: <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{schema.id}</span></div>
+                  {schema.weaviateCollectionId && (
+                    <div style={{ marginTop: '2px' }}>
+                      Weaviate ID: <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{schema.weaviateCollectionId}</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{ marginTop: '4px' }}>Updated: {formatDate(schema.updatedAt)}</div>
               </div>
               <div style={{
                 flex: 1,
@@ -398,52 +445,70 @@ export function SchemasPage() {
                 {schema.content.substring(0, 200)}
                 {schema.content.length > 200 && '...'}
               </div>
-              <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto' }}>
                 <button
-                  onClick={() => handleView(schema)}
+                  onClick={() => handleTogglePublish(schema)}
                   style={{
-                    flex: 1,
+                    width: '100%',
                     padding: '6px 12px',
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: schema.isPublished ? '#f59e0b' : '#10b981',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: 'pointer',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    fontWeight: '500'
                   }}
                 >
-                  View
+                  {schema.isPublished ? 'Unpublish' : 'Publish'}
                 </button>
-                <button
-                  onClick={() => handleEdit(schema)}
-                  style={{
-                    flex: 1,
-                    padding: '6px 12px',
-                    backgroundColor: '#3b82f6',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(schema.id)}
-                  disabled={deletingId === schema.id}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: deletingId === schema.id ? '#3f3f46' : '#7f1d1d',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: deletingId === schema.id ? 'not-allowed' : 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  {deletingId === schema.id ? '...' : 'Delete'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => handleView(schema)}
+                    style={{
+                      flex: 1,
+                      padding: '6px 12px',
+                      backgroundColor: '#3b82f6',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    View
+                  </button>
+                  <button
+                    onClick={() => handleEdit(schema)}
+                    style={{
+                      flex: 1,
+                      padding: '6px 12px',
+                      backgroundColor: '#3b82f6',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(schema.id)}
+                    disabled={deletingId === schema.id}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: deletingId === schema.id ? '#3f3f46' : '#7f1d1d',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: deletingId === schema.id ? 'not-allowed' : 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    {deletingId === schema.id ? '...' : 'Delete'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
