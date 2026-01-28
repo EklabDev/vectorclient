@@ -11,18 +11,22 @@ ENV VITE_API_URL=${VITE_API_URL}
 
 RUN npm run build
 
-# Install preview globally in builder stage
-RUN npm install -g preview
+# Install serve locally
+RUN npm install serve
 
 FROM --platform=linux/arm64/v8 node:20-alpine
 
 WORKDIR /app
 
-# Copy built files and global node_modules (which includes preview)
+# Copy built files
 COPY --from=builder /app/dist .
-COPY --from=builder /usr/local/lib/node_modules /usr/local/lib/node_modules
-COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy node_modules (including serve and all its dependencies)
+COPY --from=builder /app/node_modules ./node_modules
+
+# Ensure node_modules/.bin is in PATH
+ENV PATH="/app/node_modules/.bin:${PATH}"
 
 EXPOSE 3000
 
-CMD ["preview", "-l", "3000"]
+CMD ["serve", "-s", ".", "-l", "3000"]
