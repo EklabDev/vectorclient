@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { ApiClient } from '../services/api';
 
 interface AuthState {
   userId: string | null;
@@ -23,32 +24,12 @@ export const useAuthStore = create<AuthState>()(
       },
 
       login: async (username, password) => {
-        const response = await fetch('/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Login failed');
-        }
-
-        const data = await response.json();
+        const data = await ApiClient.login(username, password) as { userId: string; username: string; token: string };
         set({ userId: data.userId, username: data.username, token: data.token });
       },
 
       register: async (username, password, email, displayName) => {
-        const response = await fetch('/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, email, displayName }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Registration failed');
-        }
-
-        const data = await response.json();
+        const data = await ApiClient.register(username, password, email, displayName) as { userId: string; username: string; token: string };
         set({ userId: data.userId, username: data.username, token: data.token });
       },
 
