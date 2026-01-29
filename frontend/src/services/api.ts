@@ -1,20 +1,22 @@
 import { useAuthStore } from '../store/authStore';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Ensure API URL is absolute (has protocol) so fetch() doesn't treat it as relative to current origin
+function getApiBaseUrl(): string {
+  const url = rawApiUrl.trim();
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url.replace(/\/$/, ''); // strip trailing slash
+  }
+  return `https://${url}`.replace(/\/$/, '');
+}
 
 export class ApiClient {
   static async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    // If endpoint starts with /, append to API_URL, else use as is (if absolute)
-    // But here we assume relative to API_URL, or if proxied, we might not need API_URL prefix if we use relative paths in fetch.
-    // However, the guide uses `${API_URL}${endpoint}`.
-    // Since we configured proxy in vite.config.ts, we can use relative paths if we are in dev.
-    // But for production or if VITE_API_URL is set to full URL, we should be careful.
-    // If VITE_API_URL is set, we use it.
-
-    const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+    const url = endpoint.startsWith('http') ? endpoint : `${getApiBaseUrl()}${endpoint}`;
 
     // For DELETE requests without a body, don't set Content-Type header
     const method = options.method || 'GET';
