@@ -100,8 +100,8 @@ export class WeaviateService {
             description: 'Schema version',
           },
         ],
-        // Use none for vectorizer - can be changed to text2vec-openai or other vectorizers if needed
-        vectorizer: 'none',
+        // Use none for vectorizer - can be changed to  or other vectorizers if needed
+        vectorizer: 'text2vec-openai', 
       };
 
       // Create the collection

@@ -26,6 +26,7 @@ services:
       AUTHENTICATION_APIKEY_ENABLED: 'true'
       AUTHENTICATION_APIKEY_ALLOWED_KEYS: weaviate-key
       AUTHENTICATION_APIKEY_USERS: admin
+      OPENAI_APIKEY: ${OPENAI_APIKEY}
     volumes:
       - weaviate_data:/var/lib/weaviate
     healthcheck:
