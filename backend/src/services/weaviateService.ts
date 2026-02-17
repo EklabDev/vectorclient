@@ -1,5 +1,6 @@
 import weaviate, { WeaviateClient, ApiKey } from 'weaviate-ts-client';
 import { config } from 'dotenv';
+import { ChunkingService } from './chunkingService';
 
 config();
 
@@ -47,8 +48,14 @@ export class WeaviateService {
     return this.client;
   }
 
+  private static getClassName(schemaId: string): string {
+    const sanitizedName = `Schema_${schemaId.replace(/-/g, '_')}`;
+    return sanitizedName.charAt(0).toUpperCase() + sanitizedName.slice(1);
+  }
+
   /**
-   * Create or update a collection in Weaviate for a schema
+   * Create or update a collection in Weaviate for a schema.
+   * Chunks content via OpenAI and stores each chunk as a separate object.
    * Collection name format: Schema_{schemaId} (sanitized)
    */
   static async syncSchemaToWeaviate(
@@ -57,24 +64,22 @@ export class WeaviateService {
     content: string,
     description?: string | null
   ): Promise<string> {
-    try {
-      const client = this.getClient();
-      
-      // Sanitize collection name: must start with uppercase, alphanumeric and underscores only
-      // Weaviate requires class names to start with uppercase
-      const sanitizedName = `Schema_${schemaId.replace(/-/g, '_')}`;
-      const className = sanitizedName.charAt(0).toUpperCase() + sanitizedName.slice(1);
+    const client = this.getClient();
+    const className = this.getClassName(schemaId);
 
-      // Check if collection already exists using REST API
+    // Chunk content BEFORE touching Weaviate — if this fails, Weaviate is untouched
+    const chunks = await ChunkingService.chunkContent(content);
+
+    try {
+      // Delete existing collection if present
       try {
         await client.schema.classGetter().withClassName(className).do();
-        // Collection exists, delete it first
         await this.deleteCollectionFromWeaviate(className);
       } catch {
         // Collection doesn't exist, which is fine
       }
 
-      // Create collection schema using REST API
+      // Create collection with chunk-level properties
       const collectionSchema = {
         class: className,
         description: description || `Schema: ${schemaName}`,
@@ -82,7 +87,12 @@ export class WeaviateService {
           {
             name: 'content',
             dataType: ['text'],
-            description: 'Schema content/knowledge base',
+            description: 'Chunk text — a small factual unit of the schema',
+          },
+          {
+            name: 'originalReference',
+            dataType: ['text'],
+            description: 'Exact sentence or span from the source schema content',
           },
           {
             name: 'schemaId',
@@ -99,27 +109,32 @@ export class WeaviateService {
             dataType: ['int'],
             description: 'Schema version',
           },
+          {
+            name: 'chunkIndex',
+            dataType: ['int'],
+            description: 'Order index of the chunk within the schema',
+          },
         ],
-        // Use none for vectorizer - can be changed to  or other vectorizers if needed
-        vectorizer: 'text2vec-openai', 
+        vectorizer: 'text2vec-openai',
       };
 
-      // Create the collection
       await client.schema.classCreator().withClass(collectionSchema).do();
 
-      // Add the content as an object to the collection
-      const objectData = {
-        content: content,
-        schemaId: schemaId,
-        schemaName: schemaName,
-        version: 1,
-      };
-
-      await client.data
-        .creator()
-        .withClassName(className)
-        .withProperties(objectData)
-        .do();
+      // Insert each chunk as a separate object
+      for (const chunk of chunks) {
+        await client.data
+          .creator()
+          .withClassName(className)
+          .withProperties({
+            content: chunk.content,
+            originalReference: chunk.originalReference,
+            schemaId: schemaId,
+            schemaName: schemaName,
+            version: 1,
+            chunkIndex: chunk.chunkIndex,
+          })
+          .do();
+      }
 
       return className;
     } catch (error) {
@@ -129,8 +144,11 @@ export class WeaviateService {
   }
 
   /**
-   * Update schema content in Weaviate
-   * Since Weaviate doesn't support direct updates, we delete old objects and create new ones
+   * Update schema content in Weaviate using chunked full-replace.
+   * Chunks content via OpenAI, deletes existing objects, inserts new chunks.
+   *
+   * Rollback note: If Weaviate writes fail after deleting old objects, the collection
+   * will be empty until the next successful publish/sync restores the data.
    */
   static async updateSchemaInWeaviate(
     schemaId: string,
@@ -139,12 +157,13 @@ export class WeaviateService {
     version: number,
     description?: string | null
   ): Promise<string> {
-    try {
-      const client = this.getClient();
-      
-      const sanitizedName = `Schema_${schemaId.replace(/-/g, '_')}`;
-      const className = sanitizedName.charAt(0).toUpperCase() + sanitizedName.slice(1);
+    const client = this.getClient();
+    const className = this.getClassName(schemaId);
 
+    // Chunk content BEFORE touching Weaviate — if this fails, Weaviate is untouched
+    const chunks = await ChunkingService.chunkContent(content);
+
+    try {
       // Check if collection exists
       const existingCollection = await client.schema
         .classGetter()
@@ -153,45 +172,62 @@ export class WeaviateService {
         .catch(() => null);
 
       if (!existingCollection) {
-        // Collection doesn't exist, create it
-        return await this.syncSchemaToWeaviate(schemaId, schemaName, content, description);
-      }
+        // Collection doesn't exist — create it via sync (which also chunks, but
+        // we already have chunks so we recreate inline to avoid double-chunking)
+        const collectionSchema = {
+          class: className,
+          description: description || `Schema: ${schemaName}`,
+          properties: [
+            { name: 'content', dataType: ['text'], description: 'Chunk text' },
+            { name: 'originalReference', dataType: ['text'], description: 'Source sentence/span' },
+            { name: 'schemaId', dataType: ['text'], description: 'Schema ID in PostgreSQL' },
+            { name: 'schemaName', dataType: ['text'], description: 'Schema name' },
+            { name: 'version', dataType: ['int'], description: 'Schema version' },
+            { name: 'chunkIndex', dataType: ['int'], description: 'Chunk order index' },
+          ],
+          vectorizer: 'text2vec-openai',
+        };
 
-      // Delete all existing objects in the collection
-      const result = await client.graphql
-        .get()
-        .withClassName(className)
-        .withFields('_additional { id }')
-        .withLimit(1000)
-        .do();
+        await client.schema.classCreator().withClass(collectionSchema).do();
+      } else {
+        // Delete all existing objects in the collection
+        const result = await client.graphql
+          .get()
+          .withClassName(className)
+          .withFields('_additional { id }')
+          .withLimit(10000)
+          .do();
 
-      if (result.data?.Get?.[className]) {
-        const objects = result.data.Get[className] as Array<{ _additional: { id: string } }>;
-        for (const obj of objects) {
-          await client.data
-            .deleter()
-            .withClassName(className)
-            .withId(obj._additional.id)
-            .do()
-            .catch((err) => {
-              console.warn(`Failed to delete object ${obj._additional.id}:`, err);
-            });
+        if (result.data?.Get?.[className]) {
+          const objects = result.data.Get[className] as Array<{ _additional: { id: string } }>;
+          for (const obj of objects) {
+            await client.data
+              .deleter()
+              .withClassName(className)
+              .withId(obj._additional.id)
+              .do()
+              .catch((err) => {
+                console.warn(`Failed to delete object ${obj._additional.id}:`, err);
+              });
+          }
         }
       }
 
-      // Add new version of the content
-      const objectData = {
-        content: content,
-        schemaId: schemaId,
-        schemaName: schemaName,
-        version: version,
-      };
-
-      await client.data
-        .creator()
-        .withClassName(className)
-        .withProperties(objectData)
-        .do();
+      // Insert new chunks
+      for (const chunk of chunks) {
+        await client.data
+          .creator()
+          .withClassName(className)
+          .withProperties({
+            content: chunk.content,
+            originalReference: chunk.originalReference,
+            schemaId: schemaId,
+            schemaName: schemaName,
+            version: version,
+            chunkIndex: chunk.chunkIndex,
+          })
+          .do();
+      }
 
       return className;
     } catch (error) {
@@ -206,7 +242,7 @@ export class WeaviateService {
   static async deleteCollectionFromWeaviate(collectionName: string): Promise<void> {
     try {
       const client = this.getClient();
-      
+
       // Sanitize collection name
       const sanitizedName = collectionName.replace(/-/g, '_');
       const className = sanitizedName.charAt(0).toUpperCase() + sanitizedName.slice(1);
@@ -223,19 +259,19 @@ export class WeaviateService {
   }
 
   /**
-   * Get schema content from Weaviate by collection name
+   * Get schema chunks from Weaviate by collection name
    */
   static async getSchemaFromWeaviate(collectionName: string): Promise<any> {
     try {
       const client = this.getClient();
-      
+
       const sanitizedName = collectionName.replace(/-/g, '_');
       const className = sanitizedName.charAt(0).toUpperCase() + sanitizedName.slice(1);
 
       const result = await client.graphql
         .get()
         .withClassName(className)
-        .withFields('content schemaId schemaName version')
+        .withFields('content originalReference schemaId schemaName version chunkIndex')
         .withLimit(1)
         .do();
 
@@ -251,7 +287,7 @@ export class WeaviateService {
   }
 
   /**
-   * Search schema content in Weaviate
+   * Search schema chunks in Weaviate
    */
   static async searchSchema(
     collectionName: string,
@@ -260,7 +296,7 @@ export class WeaviateService {
   ): Promise<any[]> {
     try {
       const client = this.getClient();
-      
+
       const sanitizedName = collectionName.replace(/-/g, '_');
       const className = sanitizedName.charAt(0).toUpperCase() + sanitizedName.slice(1);
 
@@ -269,7 +305,7 @@ export class WeaviateService {
         .get()
         .withClassName(className)
         .withBm25({ query: query })
-        .withFields('content schemaId schemaName version _additional { score }')
+        .withFields('content originalReference schemaId schemaName version chunkIndex _additional { score }')
         .withLimit(limit)
         .do();
 

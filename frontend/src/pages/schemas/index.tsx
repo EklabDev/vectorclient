@@ -25,6 +25,7 @@ export function SchemasPage() {
     content: '',
   });
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadSchemas();
@@ -118,6 +119,7 @@ export function SchemasPage() {
 
   const handleTogglePublish = async (schema: Schema) => {
     try {
+      setTogglingId(schema.id);
       setError('');
       await ApiClient.updateSchema(schema.id, {
         isPublished: !schema.isPublished,
@@ -125,6 +127,8 @@ export function SchemasPage() {
       await loadSchemas();
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -448,19 +452,22 @@ export function SchemasPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto' }}>
                 <button
                   onClick={() => handleTogglePublish(schema)}
+                  disabled={togglingId === schema.id}
                   style={{
                     width: '100%',
                     padding: '6px 12px',
-                    backgroundColor: schema.isPublished ? '#f59e0b' : '#10b981',
+                    backgroundColor: togglingId === schema.id ? '#3f3f46' : (schema.isPublished ? '#f59e0b' : '#10b981'),
                     color: '#fff',
                     border: 'none',
                     borderRadius: '6px',
-                    cursor: 'pointer',
+                    cursor: togglingId === schema.id ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: '500'
                   }}
                 >
-                  {schema.isPublished ? 'Unpublish' : 'Publish'}
+                  {togglingId === schema.id 
+                    ? (schema.isPublished ? 'Unpublishing...' : 'Publishing...') 
+                    : (schema.isPublished ? 'Unpublish' : 'Publish')}
                 </button>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
