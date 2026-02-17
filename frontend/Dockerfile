@@ -2,7 +2,7 @@ FROM --platform=linux/arm64/v8 node:20-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 
 # Accept VITE_API_URL as build argument
