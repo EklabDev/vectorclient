@@ -113,6 +113,7 @@ export const schemas = pgTable(
     name: varchar('name', { length: 255 }).notNull(),
     description: text('description'),
     content: text('content').notNull(), // Markdown content
+    systemPrompt: text('system_prompt'), // Optional system prompt for AI agents
     weaviateCollectionId: varchar('weaviate_collection_id', { length: 255 }).unique(),
     version: integer('version').notNull().default(1),
     isPublished: boolean('is_published').notNull().default(false),

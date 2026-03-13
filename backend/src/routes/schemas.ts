@@ -11,6 +11,7 @@ const createSchemaSchema = z.object({
   name: z.string().min(1),
   description: z.string().nullable().optional(),
   content: z.string().min(1),
+  systemPrompt: z.string().nullable().optional(),
   isPublished: z.boolean().optional().default(false),
 });
 
@@ -18,6 +19,7 @@ const updateSchemaSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
   content: z.string().min(1).optional(),
+  systemPrompt: z.string().nullable().optional(),
   isPublished: z.boolean().optional(),
 });
 
@@ -34,6 +36,7 @@ export async function schemaRoutes(app: FastifyInstance) {
           name: schemas.name,
           description: schemas.description,
           content: schemas.content,
+          systemPrompt: schemas.systemPrompt,
           version: schemas.version,
           isPublished: schemas.isPublished,
           weaviateCollectionId: schemas.weaviateCollectionId,
@@ -101,6 +104,7 @@ export async function schemaRoutes(app: FastifyInstance) {
           name: body.name,
           description: body.description || null,
           content: body.content,
+          systemPrompt: body.systemPrompt ?? null,
           version: 1,
           isPublished: body.isPublished ?? false,
           weaviateCollectionId: weaviateCollectionId,
@@ -149,7 +153,8 @@ export async function schemaRoutes(app: FastifyInstance) {
       }
       if (body.name !== undefined) updateData.name = body.name;
       if (body.description !== undefined) updateData.description = body.description;
-      
+      if (body.systemPrompt !== undefined) updateData.systemPrompt = body.systemPrompt;
+
       // Handle publishing/unpublishing
       const willBePublished = body.isPublished !== undefined ? body.isPublished : existing.isPublished;
       const isBeingPublished = body.isPublished === true && !existing.isPublished;

@@ -15,6 +15,13 @@
       "when": 1769141543808,
       "tag": "0001_yummy_glorian",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773370264896,
+      "tag": "0002_opposite_hex",
+      "breakpoints": true
     }
   ]
 }

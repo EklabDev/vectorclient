@@ -1,0 +1,525 @@
+openapi: 3.0.3
+info:
+  title: Vector Client API
+  description: API for managing endpoints, schemas (knowledge base), tokens, and logs.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3001
+    description: Default local server
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password, email, displayName]
+              properties:
+                username: { type: string, minLength: 3 }
+                password: { type: string, minLength: 8 }
+                email: { type: string, format: email }
+                displayName: { type: string, minLength: 2 }
+      responses:
+        '200':
+          description: Registration result (e.g. user and token)
+        '400':
+          description: Validation error
+
+  /auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login result (e.g. token)
+        '401':
+          description: Unauthorized
+
+  /api/tokens:
+    get:
+      summary: List API tokens
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: List of tokens
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Token'
+    post:
+      summary: Create API token
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tokenName: { type: string }
+                expiresIn: { type: integer, description: 'Optional TTL in seconds' }
+      responses:
+        '200':
+          description: Created token (value returned once)
+        '400':
+          description: Validation error
+
+  /api/tokens/{id}:
+    delete:
+      summary: Revoke API token
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Token revoked
+        '404':
+          description: Token not found
+
+  /api/tokens/{id}/logs:
+    get:
+      summary: Get usage logs for a token
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: List of call logs for this token
+
+  /api/endpoints:
+    get:
+      summary: List endpoints
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: List of endpoints with associations (apiTokens, schemas)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EndpointWithAssociations'
+    post:
+      summary: Create endpoint
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEndpoint'
+      responses:
+        '200':
+          description: Created endpoint
+        '400':
+          description: Validation error
+
+  /api/endpoints/{id}:
+    get:
+      summary: Get endpoint by ID
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Endpoint with associations
+        '404':
+          description: Not found
+    patch:
+      summary: Update endpoint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEndpoint'
+      responses:
+        '200':
+          description: Updated endpoint
+        '404':
+          description: Not found
+    delete:
+      summary: Delete endpoint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/endpoints/{id}/tokens:
+    post:
+      summary: Add API tokens to endpoint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tokenIds: { type: array, items: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Tokens associated
+        '404':
+          description: Endpoint not found
+
+  /api/endpoints/{id}/tokens/{tokenId}:
+    delete:
+      summary: Remove token from endpoint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - name: tokenId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Token removed
+        '404':
+          description: Not found
+
+  /api/endpoints/{id}/schemas:
+    post:
+      summary: Add schemas (knowledge base) to endpoint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                schemaIds: { type: array, items: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Schemas associated
+        '404':
+          description: Endpoint not found
+
+  /api/endpoints/{id}/schemas/{schemaId}:
+    delete:
+      summary: Remove schema from endpoint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - name: schemaId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Schema removed
+        '404':
+          description: Not found
+
+  /api/endpoints/{id}/logs:
+    get:
+      summary: Get call logs for endpoint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: method
+          in: query
+          schema: { type: string }
+        - name: startDate
+          in: query
+          schema: { type: string, format: date-time }
+        - name: endDate
+          in: query
+          schema: { type: string, format: date-time }
+        - name: sortBy
+          in: query
+          schema: { type: string }
+        - name: sortOrder
+          in: query
+          schema: { type: string, enum: [asc, desc] }
+      responses:
+        '200':
+          description: Paginated call logs
+        '404':
+          description: Endpoint not found
+
+  /api/schemas:
+    get:
+      summary: List schemas (knowledge base)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: List of schemas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Schema'
+    post:
+      summary: Create schema
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSchema'
+      responses:
+        '200':
+          description: Created schema
+        '400':
+          description: Validation error
+
+  /api/schemas/{id}:
+    get:
+      summary: Get schema by ID
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Schema
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schema'
+        '404':
+          description: Not found
+    patch:
+      summary: Update schema
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSchema'
+      responses:
+        '200':
+          description: Updated schema
+        '404':
+          description: Not found
+    delete:
+      summary: Delete schema
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not found
+
+  /api/schemas/{id}/sync-weaviate:
+    post:
+      summary: Manually sync schema to Weaviate
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Synced successfully
+        '400':
+          description: Schema must be published first
+        '404':
+          description: Not found
+        '500':
+          description: Weaviate sync failed
+
+  /api/logs/stats/24h:
+    get:
+      summary: Request count for last 24 hours (all user endpoints)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+
+  /api/v1/endpoints/{endpoint_id}/{user_id}:
+    post:
+      summary: Invoke dynamic endpoint (webhook)
+      description: Call the endpoint. Use x-api-key header with a token associated to this endpoint.
+      parameters:
+        - name: endpoint_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Endpoint response
+        '404':
+          description: Endpoint not found or inactive
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    Schema:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        content: { type: string }
+        systemPrompt:
+          type: string
+          nullable: true
+          maxLength: 5000
+          description: Optional system prompt for AI agents (client hint; server does not enforce maxLength)
+        version: { type: integer }
+        isPublished: { type: boolean }
+        weaviateCollectionId: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    CreateSchema:
+      type: object
+      required: [name, content]
+      properties:
+        name: { type: string }
+        description: { type: string, nullable: true }
+        content: { type: string }
+        systemPrompt: { type: string, nullable: true, maxLength: 5000 }
+        isPublished: { type: boolean, default: false }
+
+    UpdateSchema:
+      type: object
+      properties:
+        name: { type: string }
+        description: { type: string, nullable: true }
+        content: { type: string }
+        systemPrompt: { type: string, nullable: true, maxLength: 5000 }
+        isPublished: { type: boolean }
+
+    Token:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tokenName: { type: string }
+        tokenPrefix: { type: string }
+        isActive: { type: boolean }
+        lastUsedAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time, nullable: true }
+
+    EndpointWithAssociations:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        routeName: { type: string }
+        route: { type: string }
+        rateLimit: { type: integer }
+        rateLimitWindowMs: { type: integer }
+        allowedOrigins: { type: array, items: { type: string } }
+        description: { type: string, nullable: true }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        apiTokens: { type: array, items: { $ref: '#/components/schemas/Token' } }
+        schemas: { type: array }
+
+    CreateEndpoint:
+      type: object
+      required: [routeName, route]
+      properties:
+        routeName: { type: string }
+        route: { type: string }
+        rateLimit: { type: integer }
+        rateLimitWindowMs: { type: integer }
+        allowedOrigins: { type: array, items: { type: string } }
+        description: { type: string, nullable: true }
+        isActive: { type: boolean }
+        apiTokenIds: { type: array, items: { type: string, format: uuid } }
+        schemaIds: { type: array, items: { type: string, format: uuid } }
+
+    UpdateEndpoint:
+      type: object
+      properties:
+        routeName: { type: string }
+        route: { type: string }
+        rateLimit: { type: integer }
+        rateLimitWindowMs: { type: integer }
+        allowedOrigins: { type: array, items: { type: string } }
+        description: { type: string, nullable: true }
+        isActive: { type: boolean }
+        apiTokenIds: { type: array, items: { type: string, format: uuid } }
+        schemaIds: { type: array, items: { type: string, format: uuid } }

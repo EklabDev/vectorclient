@@ -6,6 +6,7 @@ interface Schema {
   name: string;
   description: string | null;
   content: string;
+  systemPrompt: string | null;
   version: number;
   isPublished: boolean;
   weaviateCollectionId: string | null;
@@ -23,6 +24,7 @@ export function SchemasPage() {
     name: '',
     description: '',
     content: '',
+    systemPrompt: '',
   });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -60,6 +62,7 @@ export function SchemasPage() {
         name: formData.name,
         description: formData.description || null,
         content: formData.content,
+        systemPrompt: formData.systemPrompt || null,
       };
 
       if (editingSchema) {
@@ -83,6 +86,7 @@ export function SchemasPage() {
       name: schema.name,
       description: schema.description || '',
       content: schema.content,
+      systemPrompt: schema.systemPrompt || '',
     });
     setViewMode(false);
     setShowCreateModal(true);
@@ -96,6 +100,7 @@ export function SchemasPage() {
       name: schema.name,
       description: schema.description || '',
       content: schema.content,
+      systemPrompt: schema.systemPrompt || '',
     });
     setViewMode(true);
     setShowCreateModal(true);
@@ -137,6 +142,7 @@ export function SchemasPage() {
       name: '',
       description: '',
       content: '',
+      systemPrompt: '',
     });
   };
 
@@ -234,6 +240,14 @@ export function SchemasPage() {
                     <span style={{ color: '#a1a1aa' }}>Draft</span>
                   )}
                 </div>
+                {editingSchema.systemPrompt && (
+                  <div style={{ marginTop: '8px' }}>
+                    <strong>System prompt:</strong>
+                    <pre style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '12px', color: '#a1a1aa' }}>
+                      {editingSchema.systemPrompt}
+                    </pre>
+                  </div>
+                )}
               </div>
             )}
             <form onSubmit={handleSubmit}>
@@ -283,6 +297,31 @@ export function SchemasPage() {
                     opacity: viewMode ? 0.6 : 1
                   }}
                   placeholder="Optional description"
+                />
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                  System prompt (optional)
+                </label>
+                <textarea
+                  value={formData.systemPrompt}
+                  onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
+                  disabled={viewMode}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    backgroundColor: '#18181b',
+                    border: '1px solid #3f3f46',
+                    borderRadius: '6px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    resize: 'vertical',
+                    opacity: viewMode ? 0.6 : 1
+                  }}
+                  placeholder="Optional system prompt for AI agents"
                 />
               </div>
 
