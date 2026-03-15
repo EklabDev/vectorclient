@@ -1,8 +1,37 @@
 import weaviate, { WeaviateClient, ApiKey } from 'weaviate-ts-client';
 import { config } from 'dotenv';
-import { ChunkingService } from './chunkingService';
+import { ChunkingService, Chunk } from './chunkingService';
 
 config();
+
+const CATEGORY_MAX_LENGTH = 50;
+
+function truncateCategory(value: string | undefined | null): string | undefined {
+  if (value == null || typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return undefined;
+  return trimmed.length <= CATEGORY_MAX_LENGTH ? trimmed : trimmed.slice(0, CATEGORY_MAX_LENGTH);
+}
+
+function chunkPropertiesForWeaviate(
+  chunk: Chunk,
+  schemaId: string,
+  schemaName: string,
+  version: number
+): Record<string, unknown> {
+  const category = truncateCategory(chunk.category);
+  const subcategory = truncateCategory(chunk.subcategory);
+  return {
+    content: chunk.content,
+    originalReference: chunk.originalReference,
+    schemaId,
+    schemaName,
+    version,
+    chunkIndex: chunk.chunkIndex,
+    ...(category !== undefined && { category }),
+    ...(subcategory !== undefined && { subcategory }),
+  };
+}
 
 export class WeaviateService {
   private static client: WeaviateClient | null = null;
@@ -114,6 +143,16 @@ export class WeaviateService {
             dataType: ['int'],
             description: 'Order index of the chunk within the schema',
           },
+          {
+            name: 'category',
+            dataType: ['text'],
+            description: 'Short semantic label for the chunk (max 50 chars)',
+          },
+          {
+            name: 'subcategory',
+            dataType: ['text'],
+            description: 'Short semantic sub-label for the chunk (max 50 chars)',
+          },
         ],
         vectorizer: 'text2vec-openai',
       };
@@ -125,14 +164,7 @@ export class WeaviateService {
         await client.data
           .creator()
           .withClassName(className)
-          .withProperties({
-            content: chunk.content,
-            originalReference: chunk.originalReference,
-            schemaId: schemaId,
-            schemaName: schemaName,
-            version: 1,
-            chunkIndex: chunk.chunkIndex,
-          })
+          .withProperties(chunkPropertiesForWeaviate(chunk, schemaId, schemaName, 1))
           .do();
       }
 
@@ -184,6 +216,8 @@ export class WeaviateService {
             { name: 'schemaName', dataType: ['text'], description: 'Schema name' },
             { name: 'version', dataType: ['int'], description: 'Schema version' },
             { name: 'chunkIndex', dataType: ['int'], description: 'Chunk order index' },
+            { name: 'category', dataType: ['text'], description: 'Short semantic label (max 50 chars)' },
+            { name: 'subcategory', dataType: ['text'], description: 'Short semantic sub-label (max 50 chars)' },
           ],
           vectorizer: 'text2vec-openai',
         };
@@ -218,14 +252,7 @@ export class WeaviateService {
         await client.data
           .creator()
           .withClassName(className)
-          .withProperties({
-            content: chunk.content,
-            originalReference: chunk.originalReference,
-            schemaId: schemaId,
-            schemaName: schemaName,
-            version: version,
-            chunkIndex: chunk.chunkIndex,
-          })
+          .withProperties(chunkPropertiesForWeaviate(chunk, schemaId, schemaName, version))
           .do();
       }
 
@@ -271,7 +298,7 @@ export class WeaviateService {
       const result = await client.graphql
         .get()
         .withClassName(className)
-        .withFields('content originalReference schemaId schemaName version chunkIndex')
+        .withFields('content originalReference schemaId schemaName version chunkIndex category subcategory')
         .withLimit(1)
         .do();
 

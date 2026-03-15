@@ -152,4 +152,93 @@ describe('ChunkingService', () => {
 
     expect(result[0].originalReference).toBe('Some fact');
   });
+
+  it('preserves URL verbatim in chunk content or originalReference', async () => {
+    const url = 'https://docs.example.com/api';
+    const openaiResponse = {
+      chunks: [
+        { content: `API docs are at ${url}.`, originalReference: `See ${url} for details.`, category: 'API', subcategory: 'Docs' },
+      ],
+    };
+
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify(openaiResponse) } }],
+    });
+
+    const content = `See https://docs.example.com/api for details. This sentence is long enough to trigger OpenAI chunking.`;
+    const result = await ChunkingService.chunkContent(content);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].content).toContain(url);
+    expect(result[0].originalReference).toContain(url);
+  });
+
+  it('preserves email and phone in chunk content or originalReference', async () => {
+    const openaiResponse = {
+      chunks: [
+        {
+          content: 'Contact support@example.com or +1-555-123-4567.',
+          originalReference: 'Support: support@example.com, phone +1-555-123-4567.',
+          category: 'Contact',
+          subcategory: 'Support',
+        },
+      ],
+    };
+
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify(openaiResponse) } }],
+    });
+
+    const content = 'Support: support@example.com, phone +1-555-123-4567. Additional text to exceed the short-content threshold.';
+    const result = await ChunkingService.chunkContent(content);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].content).toContain('support@example.com');
+    expect(result[0].content).toContain('+1-555-123-4567');
+    expect(result[0].originalReference).toContain('support@example.com');
+  });
+
+  it('includes category and subcategory when provided by model', async () => {
+    const openaiResponse = {
+      chunks: [
+        { content: 'Chunk A', originalReference: 'Ref A', category: 'Pricing', subcategory: 'Plans' },
+        { content: 'Chunk B', originalReference: 'Ref B', category: 'API', subcategory: 'Auth' },
+      ],
+    };
+
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify(openaiResponse) } }],
+    });
+
+    const content = 'Ref A. Ref B. This is long enough to trigger OpenAI chunking for the response.';
+    const result = await ChunkingService.chunkContent(content);
+
+    expect(result).toHaveLength(2);
+    expect(result[0].category).toBe('Pricing');
+    expect(result[0].subcategory).toBe('Plans');
+    expect(result[1].category).toBe('API');
+    expect(result[1].subcategory).toBe('Auth');
+  });
+
+  it('truncates category and subcategory to 50 characters', async () => {
+    const longLabel = 'a'.repeat(60);
+    const openaiResponse = {
+      chunks: [
+        { content: 'C', originalReference: 'R', category: longLabel, subcategory: 'b'.repeat(55) },
+      ],
+    };
+
+    mockCreate.mockResolvedValueOnce({
+      choices: [{ message: { content: JSON.stringify(openaiResponse) } }],
+    });
+
+    const content = 'R. ' + 'x'.repeat(60);
+    const result = await ChunkingService.chunkContent(content);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].category).toHaveLength(50);
+    expect(result[0].category).toBe(longLabel.slice(0, 50));
+    expect(result[0].subcategory).toHaveLength(50);
+    expect(result[0].subcategory).toBe('b'.repeat(55).slice(0, 50));
+  });
 });
