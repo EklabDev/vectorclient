@@ -38,6 +38,8 @@ export function WeaviateExplorerModal({
   const [systemPromptDraft, setSystemPromptDraft] = useState(initialSystemPrompt ?? '');
   const [selected, setSelected] = useState<WeaviateChunkObject | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editSubcategory, setEditSubcategory] = useState('');
   const [newContent, setNewContent] = useState('');
   const [newRef, setNewRef] = useState('');
   const [newCategory, setNewCategory] = useState('');
@@ -112,13 +114,23 @@ export function WeaviateExplorerModal({
     }
   };
 
-  const saveChunkContent = async () => {
+  const saveChunkEdits = async () => {
     if (!selected) return;
-    if (!window.confirm('Save changes to this chunk content in Weaviate?')) return;
+    if (!editContent.trim()) {
+      setError('Content cannot be empty.');
+      return;
+    }
+    if (!window.confirm('Save changes to this chunk in Weaviate?')) return;
     try {
       setError('');
-      await ApiClient.patchWeaviateObjectContent(schemaId, selected.id, editContent);
+      await ApiClient.patchWeaviateChunk(schemaId, selected.id, {
+        content: editContent.trim(),
+        category: editCategory,
+        subcategory: editSubcategory,
+      });
       setSelected(null);
+      setEditCategory('');
+      setEditSubcategory('');
       await loadList();
       onWeaviateMutated?.();
     } catch (e) {
@@ -153,7 +165,11 @@ export function WeaviateExplorerModal({
     try {
       setError('');
       await ApiClient.deleteWeaviateObject(schemaId, obj.id);
-      if (selected?.id === obj.id) setSelected(null);
+      if (selected?.id === obj.id) {
+        setSelected(null);
+        setEditCategory('');
+        setEditSubcategory('');
+      }
       await loadList();
       onWeaviateMutated?.();
     } catch (e) {
@@ -320,6 +336,110 @@ export function WeaviateExplorerModal({
             </button>
           </div>
 
+          {isEdit && (
+            <fieldset
+              style={{
+                marginBottom: 16,
+                padding: '12px 14px 14px',
+                border: '1px solid #3f3f46',
+                borderRadius: 8,
+                backgroundColor: '#18181b',
+              }}
+            >
+              <legend style={{ color: '#e4e4e7', fontSize: 14, padding: '0 6px' }}>Create new chunk</legend>
+              <p style={{ fontSize: 11, color: '#71717a', margin: '0 0 12px' }}>
+                Chunk index is assigned automatically (max existing index + 1). Schema id, name, and version are set from
+                this schema.
+              </p>
+              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Content *</label>
+              <textarea
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  backgroundColor: '#27272a',
+                  border: '1px solid #3f3f46',
+                  borderRadius: 6,
+                  color: '#fff',
+                  fontSize: 13,
+                  marginBottom: 10,
+                  boxSizing: 'border-box',
+                }}
+              />
+              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>
+                Original reference
+              </label>
+              <input
+                type="text"
+                value={newRef}
+                onChange={(e) => setNewRef(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  backgroundColor: '#27272a',
+                  border: '1px solid #3f3f46',
+                  borderRadius: 6,
+                  color: '#fff',
+                  fontSize: 13,
+                  marginBottom: 10,
+                  boxSizing: 'border-box',
+                }}
+              />
+              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Category</label>
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                maxLength={50}
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  backgroundColor: '#27272a',
+                  border: '1px solid #3f3f46',
+                  borderRadius: 6,
+                  color: '#fff',
+                  fontSize: 13,
+                  marginBottom: 10,
+                  boxSizing: 'border-box',
+                }}
+              />
+              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Subcategory</label>
+              <input
+                type="text"
+                value={newSubcategory}
+                onChange={(e) => setNewSubcategory(e.target.value)}
+                maxLength={50}
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  backgroundColor: '#27272a',
+                  border: '1px solid #3f3f46',
+                  borderRadius: 6,
+                  color: '#fff',
+                  fontSize: 13,
+                  marginBottom: 10,
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => void createChunk()}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#7c3aed',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                }}
+              >
+                Create chunk
+              </button>
+            </fieldset>
+          )}
+
           {showSearchResults && (
             <p style={{ fontSize: 12, color: '#fbbf24', marginBottom: 8 }}>Showing search results (max 10).</p>
           )}
@@ -363,6 +483,8 @@ export function WeaviateExplorerModal({
                             onClick={() => {
                               setSelected(o);
                               setEditContent(o.content || '');
+                              setEditCategory(o.category ?? '');
+                              setEditSubcategory(o.subcategory ?? '');
                             }}
                             style={{
                               marginRight: 6,
@@ -404,10 +526,11 @@ export function WeaviateExplorerModal({
 
           {isEdit && selected && (
             <div style={{ marginTop: 16, padding: 12, backgroundColor: '#18181b', borderRadius: 6 }}>
-              <div style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 6 }}>
-                Edit chunk {selected.id} — only <strong style={{ color: '#e4e4e7' }}>content</strong> is saved; idx,
-                category, and subcategory are unchanged.
+              <div style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 10 }}>
+                Edit chunk <code style={{ color: '#93c5fd' }}>{selected.id}</code> — updates content, category, and
+                subcategory (merge). Chunk index is not changed.
               </div>
+              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Content *</label>
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -420,13 +543,50 @@ export function WeaviateExplorerModal({
                   borderRadius: 6,
                   color: '#fff',
                   fontSize: 13,
-                  marginBottom: 8,
+                  marginBottom: 10,
+                  boxSizing: 'border-box',
+                }}
+              />
+              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Category</label>
+              <input
+                type="text"
+                value={editCategory}
+                onChange={(e) => setEditCategory(e.target.value)}
+                maxLength={50}
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  backgroundColor: '#27272a',
+                  border: '1px solid #3f3f46',
+                  borderRadius: 6,
+                  color: '#fff',
+                  fontSize: 13,
+                  marginBottom: 10,
+                  boxSizing: 'border-box',
+                }}
+              />
+              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Subcategory</label>
+              <input
+                type="text"
+                value={editSubcategory}
+                onChange={(e) => setEditSubcategory(e.target.value)}
+                maxLength={50}
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  backgroundColor: '#27272a',
+                  border: '1px solid #3f3f46',
+                  borderRadius: 6,
+                  color: '#fff',
+                  fontSize: 13,
+                  marginBottom: 10,
+                  boxSizing: 'border-box',
                 }}
               />
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type="button"
-                  onClick={() => void saveChunkContent()}
+                  onClick={() => void saveChunkEdits()}
                   style={{
                     padding: '6px 12px',
                     backgroundColor: '#059669',
@@ -440,7 +600,11 @@ export function WeaviateExplorerModal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelected(null)}
+                  onClick={() => {
+                    setSelected(null);
+                    setEditCategory('');
+                    setEditSubcategory('');
+                  }}
                   style={{
                     padding: '6px 12px',
                     backgroundColor: '#52525b',
@@ -453,96 +617,6 @@ export function WeaviateExplorerModal({
                   Cancel
                 </button>
               </div>
-            </div>
-          )}
-
-          {isEdit && (
-            <div style={{ marginTop: 16, padding: 12, backgroundColor: '#18181b', borderRadius: 6 }}>
-              <div style={{ fontSize: 13, color: '#e4e4e7', marginBottom: 4 }}>New chunk</div>
-              <p style={{ fontSize: 11, color: '#71717a', margin: '0 0 10px' }}>
-                Chunk index is set automatically (max existing index + 1). Schema id, name, and version come from this
-                schema.
-              </p>
-              <textarea
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                placeholder="Content *"
-                rows={4}
-                style={{
-                  width: '100%',
-                  padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
-                  borderRadius: 6,
-                  color: '#fff',
-                  fontSize: 13,
-                  marginBottom: 8,
-                }}
-              />
-              <input
-                type="text"
-                value={newRef}
-                onChange={(e) => setNewRef(e.target.value)}
-                placeholder="Original reference (optional)"
-                style={{
-                  width: '100%',
-                  padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
-                  borderRadius: 6,
-                  color: '#fff',
-                  fontSize: 13,
-                  marginBottom: 8,
-                }}
-              />
-              <input
-                type="text"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="Category (optional, max 50 chars)"
-                maxLength={50}
-                style={{
-                  width: '100%',
-                  padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
-                  borderRadius: 6,
-                  color: '#fff',
-                  fontSize: 13,
-                  marginBottom: 8,
-                }}
-              />
-              <input
-                type="text"
-                value={newSubcategory}
-                onChange={(e) => setNewSubcategory(e.target.value)}
-                placeholder="Subcategory (optional, max 50 chars)"
-                maxLength={50}
-                style={{
-                  width: '100%',
-                  padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
-                  borderRadius: 6,
-                  color: '#fff',
-                  fontSize: 13,
-                  marginBottom: 8,
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => void createChunk()}
-                style={{
-                  padding: '6px 12px',
-                  backgroundColor: '#7c3aed',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                }}
-              >
-                Create chunk
-              </button>
             </div>
           )}
         </div>

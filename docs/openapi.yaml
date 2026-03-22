@@ -482,7 +482,7 @@ paths:
 
   /api/schemas/{id}/weaviate/objects/{objectId}:
     patch:
-      summary: Update chunk content only (merge/PATCH; other properties unchanged)
+      summary: Partial update chunk (merge/PATCH; omit keys you do not want to change)
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdPath'
@@ -496,9 +496,12 @@ paths:
           application/json:
             schema:
               type: object
-              required: [content]
+              minProperties: 1
+              description: At least one of content, category, subcategory
               properties:
                 content: { type: string, minLength: 1 }
+                category: { type: string, maxLength: 50 }
+                subcategory: { type: string, maxLength: 50 }
       responses:
         '200':
           description: Updated

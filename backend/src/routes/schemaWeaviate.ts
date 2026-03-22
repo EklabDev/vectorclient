@@ -24,9 +24,21 @@ const createChunkBodySchema = z.object({
   subcategory: z.string().max(CATEGORY_MAX).optional(),
 });
 
-const patchChunkBodySchema = z.object({
-  content: z.string().min(1),
-});
+const patchChunkBodySchema = z
+  .object({
+    content: z.string().min(1).optional(),
+    category: z.string().max(CATEGORY_MAX).optional(),
+    subcategory: z.string().max(CATEGORY_MAX).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.content === undefined && data.category === undefined && data.subcategory === undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Provide at least one of: content, category, subcategory',
+        path: [],
+      });
+    }
+  });
 
 const batchCountsBodySchema = z.object({
   ids: z.array(z.string().uuid()).max(50),
@@ -217,7 +229,11 @@ export async function schemaWeaviateRoutes(app: FastifyInstance) {
       }
 
       const className = WeaviateService.resolveClassName(id, res.schema.weaviateCollectionId);
-      await WeaviateService.updateChunkContent(className, objectId, body.content);
+      await WeaviateService.patchChunkObject(className, objectId, {
+        ...(body.content !== undefined && { content: body.content }),
+        ...(body.category !== undefined && { category: body.category }),
+        ...(body.subcategory !== undefined && { subcategory: body.subcategory }),
+      });
       return { ok: true };
     } catch (error) {
       if (error instanceof z.ZodError) {

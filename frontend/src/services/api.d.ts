@@ -50,7 +50,12 @@ export declare class ApiClient {
         id: string;
         chunkIndex: number;
     }>;
-    static patchWeaviateObjectContent(schemaId: string, objectId: string, content: string): Promise<{
+    /** Merge-update chunk fields (omit a key to leave that field unchanged in Weaviate). */
+    static patchWeaviateChunk(schemaId: string, objectId: string, body: {
+        content?: string;
+        category?: string;
+        subcategory?: string;
+    }): Promise<{
         ok: boolean;
     }>;
     static deleteWeaviateObject(schemaId: string, objectId: string): Promise<{

@@ -167,10 +167,15 @@ export class ApiClient {
     });
   }
 
-  static patchWeaviateObjectContent(schemaId: string, objectId: string, content: string) {
+  /** Merge-update chunk fields (omit a key to leave that field unchanged in Weaviate). */
+  static patchWeaviateChunk(
+    schemaId: string,
+    objectId: string,
+    body: { content?: string; category?: string; subcategory?: string }
+  ) {
     return this.request<{ ok: boolean }>(`/api/schemas/${schemaId}/weaviate/objects/${objectId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(body),
     });
   }
 

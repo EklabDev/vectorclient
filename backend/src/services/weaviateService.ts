@@ -221,17 +221,29 @@ export class WeaviateService {
   }
 
   /**
-   * Update chunk text only. Uses merge/PATCH so category, subcategory, chunkIndex, etc. stay intact.
-   * (The TS client's `updater` issues a full replace and clears unspecified properties.)
+   * Partial update via merge/PATCH — only supplied fields change; chunkIndex and other props stay intact.
+   * (Never use `updater` here: it replaces the whole object and drops unspecified properties.)
    */
-  static async updateChunkContent(className: string, objectId: string, content: string): Promise<void> {
+  static async patchChunkObject(
+    className: string,
+    objectId: string,
+    patch: { content?: string; category?: string; subcategory?: string }
+  ): Promise<void> {
+    const props: Record<string, string> = {};
+    if (patch.content !== undefined) props.content = patch.content;
+    if (patch.category !== undefined) {
+      const t = truncateCategory(patch.category);
+      props.category = t ?? '';
+    }
+    if (patch.subcategory !== undefined) {
+      const t = truncateCategory(patch.subcategory);
+      props.subcategory = t ?? '';
+    }
+    if (Object.keys(props).length === 0) {
+      throw new Error('No properties to patch');
+    }
     const client = this.getClient();
-    await client.data
-      .merger()
-      .withId(objectId)
-      .withClassName(className)
-      .withProperties({ content })
-      .do();
+    await client.data.merger().withId(objectId).withClassName(className).withProperties(props).do();
   }
 
   static async deleteChunkObject(className: string, objectId: string): Promise<void> {
