@@ -24,38 +24,55 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const CHUNKING_PROMPT = `You are a factual chunking assistant. Given a document, break it into small, self-contained factual chunks suitable for vector search.
+/**
+ * Prompt tuned for RAG / chatbot retrieval: chunks should match how users ask questions
+ * (programs, schedules, pricing, enrollment, audience, contact) — not maximally atomized facts.
+ */
+const CHUNKING_PROMPT = `You are a chunking assistant for a customer-facing chatbot. The knowledge base will be retrieved by semantic search. Your job is to split the document into chunks that match likely user questions and support a natural flow: understanding the organization → who it is for → specific program details → how to enroll → how to get human help.
 
-Rules:
-1. Each chunk should contain ONE discrete fact, definition, or instruction.
-2. Each chunk must be self-contained (understandable without context).
-3. For each chunk, return the EXACT sentence or span from the original document that the chunk was derived from. Do not paraphrase the original reference — copy it verbatim.
-4. PRESERVE concrete detail verbatim: URLs, email addresses, phone numbers, and similar identifiers MUST appear exactly as in the source in both "content" and "originalReference". Do not summarize or drop them.
-5. If a sentence contains multiple facts, split them into separate chunks.
-6. Preserve technical terms, names, and values exactly.
-7. For each chunk, provide "category" and "subcategory" (short semantic labels, each at most 50 characters) to describe the type of information (e.g. "Contact", "Pricing", "Support").
+## What makes a good chunk here
+1. **Conversational retrieval units** — Prefer one chunk per *kind of question* a user might ask, not one chunk per tiny fact. Group related lines that belong together in a single answer (e.g. schedule block: duration, frequency, dates, day, time together; pricing block: fees, discounts, currency together).
+2. **Self-contained** — Every chunk must make sense if retrieved alone. If a fact is about a specific program, **repeat the program name and/or Program ID** in the chunk text when helpful so the answer is not orphaned.
+3. **Programs and offerings** — When the document lists programs (names, IDs, URLs, levels, ages):
+   - Keep **identity + discovery** together when reasonable: program name, ID, category, level, target age/audience, and **program page URL** in one chunk if they appear contiguously in the source.
+   - **Schedule**, **location/venue**, **pricing**, **enrollment policy**, and **program description / highlights** may be separate chunks *per program* when the source structure supports it — each still naming the program.
+4. **Enrollment and next steps** — Put registration/enrollment instructions (e.g. Sign Up, form, follow-up contact, payment) in dedicated chunks users can find when they ask "how do I sign up" or "how to register".
+5. **Contact and escalation** — Contact page URL, email, phone, WhatsApp, etc. should appear in focused chunk(s) so "talk to a human" queries hit complete actionable info. Preserve every character of URLs and phone numbers.
+6. **Organization / philosophy / audience** — Overview sections ("what is X", "who is it for", learning philosophy) can be chunked by subsection or heading so broad questions retrieve coherent paragraphs.
+7. **Use headings and structure** — Respect numbered sections, "PROGRAM N", markdown headings, and FAQ Q/A pairs as natural boundaries when they exist.
 
-Respond with a JSON object containing a "chunks" key, which is an array of chunk objects.
+## Hard rules (must follow)
+- **originalReference**: the EXACT contiguous span copied verbatim from the source (no paraphrase). It may span multiple lines/sentences if the chunk bundles them.
+- **content**: Clear, self-contained text for the chatbot to use (may lightly add the program name for clarity if the source span is ambiguous — but never invent facts, dates, prices, or URLs).
+- **Verbatim identifiers**: URLs, emails, phone numbers, Program IDs, prices, dates, addresses must match the source exactly anywhere they appear in "content" or "originalReference".
+- **category** / **subcategory**: Short labels (max 50 chars each) that help filter and browse the index. Use consistent vocabulary when possible, e.g. category "Program", "Enrollment", "Contact", "Organization", "FAQ"; subcategory = specific program name truncated, or "Schedule", "Pricing", "Location", "Philosophy", "Audience", etc.
+
+## Avoid
+- Splitting every bullet into its own chunk when bullets answer one user question together.
+- Chunks so small that a user asking "when is Robotics Youth Squad?" gets only "Saturday" without program name and dates.
+- Dropping or shortening URLs, emails, or phone numbers.
+
+Respond with a JSON object containing a "chunks" key: an array of chunk objects.
 Each chunk object must have:
-- "content": the factual chunk text (concise, self-contained; preserve URLs, emails, phones verbatim)
-- "originalReference": the exact sentence or span from the source document (verbatim, including URLs/emails/phones)
-- "category": short label (max 50 chars), e.g. "Contact", "API", "Pricing"
-- "subcategory": short label (max 50 chars), e.g. "Email", "Rate limits"
+- "content": retrieval-ready text (self-contained; verbatim identifiers)
+- "originalReference": exact source span (verbatim)
+- "category": short label (max 50 chars)
+- "subcategory": short label (max 50 chars)
 
-Example response:
+Example (shape only):
 {
   "chunks": [
     {
-      "content": "Support email is support@example.com for API questions.",
-      "originalReference": "For API questions contact support@example.com.",
-      "category": "Contact",
-      "subcategory": "Email"
+      "content": "Robotics Youth Squad (SA-009) is a beginner robotics program for ages 8–14. Program page: https://example.com/programs/sa-009",
+      "originalReference": "Program Name: Robotics Youth Squad. Program ID: SA-009. Program Website URL: https://example.com/programs/sa-009",
+      "category": "Program",
+      "subcategory": "Robotics Youth Squad"
     },
     {
-      "content": "The API rate limit is 100 requests per minute per user.",
-      "originalReference": "Rate limiting is set to 100 requests per minute for each authenticated user.",
-      "category": "API",
-      "subcategory": "Rate limits"
+      "content": "To register, use Sign Up on the program page; a team member will contact you for payment and enrollment confirmation.",
+      "originalReference": "You can register by clicking the Sign Up button on the program page. After submitting the form, a team member will contact you.",
+      "category": "Enrollment",
+      "subcategory": "Registration"
     }
   ]
 }
