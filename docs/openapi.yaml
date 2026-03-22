@@ -430,6 +430,8 @@ paths:
               properties:
                 content: { type: string, minLength: 1 }
                 originalReference: { type: string }
+                category: { type: string, maxLength: 50 }
+                subcategory: { type: string, maxLength: 50 }
       responses:
         '200':
           description: Created id and chunkIndex
@@ -480,7 +482,7 @@ paths:
 
   /api/schemas/{id}/weaviate/objects/{objectId}:
     patch:
-      summary: Update chunk content only
+      summary: Update chunk content only (merge/PATCH; other properties unchanged)
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdPath'

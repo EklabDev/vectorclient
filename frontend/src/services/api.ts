@@ -152,7 +152,15 @@ export class ApiClient {
     });
   }
 
-  static createWeaviateObject(schemaId: string, body: { content: string; originalReference?: string }) {
+  static createWeaviateObject(
+    schemaId: string,
+    body: {
+      content: string;
+      originalReference?: string;
+      category?: string;
+      subcategory?: string;
+    }
+  ) {
     return this.request<{ id: string; chunkIndex: number }>(`/api/schemas/${schemaId}/weaviate/objects`, {
       method: 'POST',
       body: JSON.stringify(body),

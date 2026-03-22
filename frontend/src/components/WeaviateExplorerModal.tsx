@@ -40,6 +40,8 @@ export function WeaviateExplorerModal({
   const [editContent, setEditContent] = useState('');
   const [newContent, setNewContent] = useState('');
   const [newRef, setNewRef] = useState('');
+  const [newCategory, setNewCategory] = useState('');
+  const [newSubcategory, setNewSubcategory] = useState('');
 
   const isEdit = mode === 'edit';
 
@@ -132,9 +134,13 @@ export function WeaviateExplorerModal({
       await ApiClient.createWeaviateObject(schemaId, {
         content: newContent.trim(),
         originalReference: newRef.trim() || undefined,
+        category: newCategory.trim() || undefined,
+        subcategory: newSubcategory.trim() || undefined,
       });
       setNewContent('');
       setNewRef('');
+      setNewCategory('');
+      setNewSubcategory('');
       await loadList();
       onWeaviateMutated?.();
     } catch (e) {
@@ -398,7 +404,10 @@ export function WeaviateExplorerModal({
 
           {isEdit && selected && (
             <div style={{ marginTop: 16, padding: 12, backgroundColor: '#18181b', borderRadius: 6 }}>
-              <div style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 6 }}>Edit chunk {selected.id}</div>
+              <div style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 6 }}>
+                Edit chunk {selected.id} — only <strong style={{ color: '#e4e4e7' }}>content</strong> is saved; idx,
+                category, and subcategory are unchanged.
+              </div>
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -449,7 +458,11 @@ export function WeaviateExplorerModal({
 
           {isEdit && (
             <div style={{ marginTop: 16, padding: 12, backgroundColor: '#18181b', borderRadius: 6 }}>
-              <div style={{ fontSize: 13, color: '#e4e4e7', marginBottom: 8 }}>New chunk</div>
+              <div style={{ fontSize: 13, color: '#e4e4e7', marginBottom: 4 }}>New chunk</div>
+              <p style={{ fontSize: 11, color: '#71717a', margin: '0 0 10px' }}>
+                Chunk index is set automatically (max existing index + 1). Schema id, name, and version come from this
+                schema.
+              </p>
               <textarea
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
@@ -471,6 +484,40 @@ export function WeaviateExplorerModal({
                 value={newRef}
                 onChange={(e) => setNewRef(e.target.value)}
                 placeholder="Original reference (optional)"
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  backgroundColor: '#27272a',
+                  border: '1px solid #3f3f46',
+                  borderRadius: 6,
+                  color: '#fff',
+                  fontSize: 13,
+                  marginBottom: 8,
+                }}
+              />
+              <input
+                type="text"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="Category (optional, max 50 chars)"
+                maxLength={50}
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  backgroundColor: '#27272a',
+                  border: '1px solid #3f3f46',
+                  borderRadius: 6,
+                  color: '#fff',
+                  fontSize: 13,
+                  marginBottom: 8,
+                }}
+              />
+              <input
+                type="text"
+                value={newSubcategory}
+                onChange={(e) => setNewSubcategory(e.target.value)}
+                placeholder="Subcategory (optional, max 50 chars)"
+                maxLength={50}
                 style={{
                   width: '100%',
                   padding: 8,

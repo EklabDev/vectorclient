@@ -191,20 +191,28 @@ export class WeaviateService {
       schemaName: string;
       version: number;
       chunkIndex: number;
+      category?: string;
+      subcategory?: string;
     }
   ): Promise<string> {
     const client = this.getClient();
+    const category = truncateCategory(props.category);
+    const subcategory = truncateCategory(props.subcategory);
+    const weaviateProps: Record<string, unknown> = {
+      content: props.content,
+      originalReference: props.originalReference ?? props.content,
+      schemaId: props.schemaId,
+      schemaName: props.schemaName,
+      version: props.version,
+      chunkIndex: props.chunkIndex,
+    };
+    if (category !== undefined) weaviateProps.category = category;
+    if (subcategory !== undefined) weaviateProps.subcategory = subcategory;
+
     const created = await client.data
       .creator()
       .withClassName(className)
-      .withProperties({
-        content: props.content,
-        originalReference: props.originalReference ?? props.content,
-        schemaId: props.schemaId,
-        schemaName: props.schemaName,
-        version: props.version,
-        chunkIndex: props.chunkIndex,
-      })
+      .withProperties(weaviateProps)
       .do();
     if (!created.id) {
       throw new Error('Weaviate did not return an object id after create');
@@ -212,10 +220,14 @@ export class WeaviateService {
     return created.id;
   }
 
+  /**
+   * Update chunk text only. Uses merge/PATCH so category, subcategory, chunkIndex, etc. stay intact.
+   * (The TS client's `updater` issues a full replace and clears unspecified properties.)
+   */
   static async updateChunkContent(className: string, objectId: string, content: string): Promise<void> {
     const client = this.getClient();
     await client.data
-      .updater()
+      .merger()
       .withId(objectId)
       .withClassName(className)
       .withProperties({ content })

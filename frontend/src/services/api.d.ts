@@ -44,6 +44,8 @@ export declare class ApiClient {
     static createWeaviateObject(schemaId: string, body: {
         content: string;
         originalReference?: string;
+        category?: string;
+        subcategory?: string;
     }): Promise<{
         id: string;
         chunkIndex: number;

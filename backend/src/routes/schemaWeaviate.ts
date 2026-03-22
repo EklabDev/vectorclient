@@ -15,9 +15,13 @@ const searchBodySchema = z.object({
   mode: z.enum(['bm25', 'vector']),
 });
 
+const CATEGORY_MAX = 50;
+
 const createChunkBodySchema = z.object({
   content: z.string().min(1),
   originalReference: z.string().optional(),
+  category: z.string().max(CATEGORY_MAX).optional(),
+  subcategory: z.string().max(CATEGORY_MAX).optional(),
 });
 
 const patchChunkBodySchema = z.object({
@@ -182,6 +186,8 @@ export async function schemaWeaviateRoutes(app: FastifyInstance) {
         schemaName: res.schema.name,
         version: res.schema.version,
         chunkIndex,
+        category: body.category,
+        subcategory: body.subcategory,
       });
 
       return { id: newId, chunkIndex };
