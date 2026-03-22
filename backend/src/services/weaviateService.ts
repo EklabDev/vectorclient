@@ -33,6 +33,26 @@ function chunkPropertiesForWeaviate(
   };
 }
 
+/** Max objects returned in one list call (no pagination). */
+export const WEAVIATE_LIST_MAX = 500;
+/** Max search hits per request. */
+export const WEAVIATE_SEARCH_MAX = 10;
+/** Max characters for search query body. */
+export const WEAVIATE_SEARCH_QUERY_MAX = 4096;
+
+export type WeaviateChunkObject = {
+  id: string;
+  content?: string;
+  originalReference?: string;
+  schemaId?: string;
+  schemaName?: string;
+  version?: number;
+  chunkIndex?: number;
+  category?: string;
+  subcategory?: string;
+  score?: number;
+};
+
 export class WeaviateService {
   private static client: WeaviateClient | null = null;
 
@@ -80,6 +100,144 @@ export class WeaviateService {
   private static getClassName(schemaId: string): string {
     const sanitizedName = `Schema_${schemaId.replace(/-/g, '_')}`;
     return sanitizedName.charAt(0).toUpperCase() + sanitizedName.slice(1);
+  }
+
+  /** Class name stored in `weaviateCollectionId`, or derived from schema UUID. */
+  static resolveClassName(schemaId: string, weaviateCollectionId: string | null | undefined): string {
+    const trimmed = weaviateCollectionId?.trim();
+    if (trimmed) return trimmed;
+    return this.getClassName(schemaId);
+  }
+
+  private static mapChunkObject(obj: Record<string, unknown>): WeaviateChunkObject | null {
+    const add = obj._additional as { id?: string; score?: number } | undefined;
+    if (!add?.id) return null;
+    const { _additional, ...rest } = obj;
+    return {
+      id: add.id,
+      ...(rest as Omit<WeaviateChunkObject, 'id' | 'score'>),
+      ...(add.score != null ? { score: add.score } : {}),
+    };
+  }
+
+  /**
+   * List chunk objects (single response, max WEAVIATE_LIST_MAX; fetch limit+1 to detect truncation).
+   */
+  static async listChunkObjects(className: string): Promise<{ objects: WeaviateChunkObject[]; truncated: boolean }> {
+    const client = this.getClient();
+    const result = await client.graphql
+      .get()
+      .withClassName(className)
+      .withFields(
+        'content originalReference schemaId schemaName version chunkIndex category subcategory _additional { id }'
+      )
+      .withLimit(WEAVIATE_LIST_MAX + 1)
+      .do();
+
+    const raw = (result.data?.Get?.[className] as Record<string, unknown>[]) || [];
+    const truncated = raw.length > WEAVIATE_LIST_MAX;
+    const slice = truncated ? raw.slice(0, WEAVIATE_LIST_MAX) : raw;
+    const objects = slice
+      .map((o) => this.mapChunkObject(o))
+      .filter((o): o is WeaviateChunkObject => o != null);
+    return { objects, truncated };
+  }
+
+  /** Total object count for a class (aggregate). */
+  static async getClassObjectCount(className: string): Promise<number> {
+    const client = this.getClient();
+    const result = await client.graphql
+      .aggregate()
+      .withClassName(className)
+      .withFields('meta { count }')
+      .do();
+
+    const agg = result.data?.Aggregate?.[className];
+    if (Array.isArray(agg) && agg[0]?.meta?.count != null) {
+      return Number(agg[0].meta.count);
+    }
+    return 0;
+  }
+
+  /**
+   * BM25 or nearText search; returns at most `limit` objects (default WEAVIATE_SEARCH_MAX).
+   */
+  static async searchChunkObjects(
+    className: string,
+    query: string,
+    mode: 'bm25' | 'vector',
+    limit: number = WEAVIATE_SEARCH_MAX
+  ): Promise<WeaviateChunkObject[]> {
+    const client = this.getClient();
+    const fields =
+      'content originalReference schemaId schemaName version chunkIndex category subcategory _additional { id score }';
+    const base = client.graphql.get().withClassName(className).withFields(fields).withLimit(limit);
+    const result =
+      mode === 'bm25'
+        ? await base.withBm25({ query }).do()
+        : await base.withNearText({ concepts: [query] }).do();
+    const raw = (result.data?.Get?.[className] as Record<string, unknown>[]) || [];
+    return raw
+      .map((o) => this.mapChunkObject(o))
+      .filter((o): o is WeaviateChunkObject => o != null);
+  }
+
+  static async createChunkObject(
+    className: string,
+    props: {
+      content: string;
+      originalReference?: string;
+      schemaId: string;
+      schemaName: string;
+      version: number;
+      chunkIndex: number;
+    }
+  ): Promise<string> {
+    const client = this.getClient();
+    const created = await client.data
+      .creator()
+      .withClassName(className)
+      .withProperties({
+        content: props.content,
+        originalReference: props.originalReference ?? props.content,
+        schemaId: props.schemaId,
+        schemaName: props.schemaName,
+        version: props.version,
+        chunkIndex: props.chunkIndex,
+      })
+      .do();
+    if (!created.id) {
+      throw new Error('Weaviate did not return an object id after create');
+    }
+    return created.id;
+  }
+
+  static async updateChunkContent(className: string, objectId: string, content: string): Promise<void> {
+    const client = this.getClient();
+    await client.data
+      .updater()
+      .withId(objectId)
+      .withClassName(className)
+      .withProperties({ content })
+      .do();
+  }
+
+  static async deleteChunkObject(className: string, objectId: string): Promise<void> {
+    const client = this.getClient();
+    await client.data.deleter().withClassName(className).withId(objectId).do();
+  }
+
+  /**
+   * Next chunkIndex: max(chunkIndex)+1 from listed objects when list is not truncated;
+   * otherwise falls back to total object count (may rarely collide if indices are sparse).
+   */
+  static async getNextChunkIndex(className: string): Promise<number> {
+    const { objects, truncated } = await this.listChunkObjects(className);
+    if (objects.length === 0) return 0;
+    if (!truncated) {
+      return Math.max(...objects.map((o) => (typeof o.chunkIndex === 'number' ? o.chunkIndex : 0))) + 1;
+    }
+    return (await this.getClassObjectCount(className)) || 0;
   }
 
   /**

@@ -119,4 +119,25 @@ describe('WeaviateService', () => {
     expect(props).not.toHaveProperty('category');
     expect(props).not.toHaveProperty('subcategory');
   });
+
+  describe('resolveClassName', () => {
+    it('prefers non-empty weaviateCollectionId', async () => {
+      const WeaviateService = await getWeaviateService();
+      expect(WeaviateService.resolveClassName('550e8400-e29b-41d4-a716-446655440000', 'CustomClass')).toBe(
+        'CustomClass'
+      );
+    });
+
+    it('trims weaviateCollectionId', async () => {
+      const WeaviateService = await getWeaviateService();
+      expect(WeaviateService.resolveClassName('id-1', '  Trimmed  ')).toBe('Trimmed');
+    });
+
+    it('derives class name from schema id when collection id missing', async () => {
+      const WeaviateService = await getWeaviateService();
+      expect(WeaviateService.resolveClassName('550e8400-e29b-41d4-a716-446655440000', null)).toMatch(
+        /^Schema_550e8400_e29b_41d4_a716_446655440000$/
+      );
+    });
+  });
 });

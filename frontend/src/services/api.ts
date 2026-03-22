@@ -1,5 +1,18 @@
 import { useAuthStore } from '../store/authStore';
 
+export interface WeaviateChunkObject {
+  id: string;
+  content?: string;
+  originalReference?: string;
+  schemaId?: string;
+  schemaName?: string;
+  version?: number;
+  chunkIndex?: number;
+  category?: string;
+  subcategory?: string;
+  score?: number;
+}
+
 const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Ensure API URL is absolute (has protocol) so fetch() doesn't treat it as relative to current origin
@@ -112,6 +125,51 @@ export class ApiClient {
 
   static deleteSchema(id: string) {
     return this.request(`/api/schemas/${id}`, { method: 'DELETE' });
+  }
+
+  /** Batch Weaviate object counts for schema cards (published only). */
+  static postWeaviateBatchCounts(ids: string[]) {
+    return this.request<{ counts: Record<string, number> }>('/api/schemas/weaviate/batch-counts', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    });
+  }
+
+  static getWeaviateObjects(schemaId: string) {
+    return this.request<{ objects: WeaviateChunkObject[]; truncated: boolean }>(
+      `/api/schemas/${schemaId}/weaviate/objects`
+    );
+  }
+
+  static getWeaviateCount(schemaId: string) {
+    return this.request<{ count: number }>(`/api/schemas/${schemaId}/weaviate/count`);
+  }
+
+  static searchWeaviateObjects(schemaId: string, body: { query: string; mode: 'bm25' | 'vector' }) {
+    return this.request<{ objects: WeaviateChunkObject[] }>(`/api/schemas/${schemaId}/weaviate/search`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  static createWeaviateObject(schemaId: string, body: { content: string; originalReference?: string }) {
+    return this.request<{ id: string; chunkIndex: number }>(`/api/schemas/${schemaId}/weaviate/objects`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  static patchWeaviateObjectContent(schemaId: string, objectId: string, content: string) {
+    return this.request<{ ok: boolean }>(`/api/schemas/${schemaId}/weaviate/objects/${objectId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  static deleteWeaviateObject(schemaId: string, objectId: string) {
+    return this.request<{ ok: boolean }>(`/api/schemas/${schemaId}/weaviate/objects/${objectId}`, {
+      method: 'DELETE',
+    });
   }
 
   // Tokens

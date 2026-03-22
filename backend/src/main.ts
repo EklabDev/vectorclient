@@ -6,6 +6,7 @@ import { authRoutes } from './routes/auth';
 import { tokenRoutes } from './routes/tokens';
 import { endpointRoutes } from './routes/endpoints';
 import { schemaRoutes } from './routes/schemas';
+import { schemaWeaviateRoutes } from './routes/schemaWeaviate';
 import { logRoutes } from './routes/logs';
 import { dynamicRoutes } from './routes/dynamic';
 
@@ -37,6 +38,7 @@ app.get('/health', async (request, reply) => {
 app.register(authRoutes, { prefix: '/auth' });
 app.register(tokenRoutes, { prefix: '/api/tokens' });
 app.register(endpointRoutes, { prefix: '/api/endpoints' });
+app.register(schemaWeaviateRoutes, { prefix: '/api/schemas' });
 app.register(schemaRoutes, { prefix: '/api/schemas' });
 app.register(logRoutes, { prefix: '/api/logs' });
 app.register(dynamicRoutes, { prefix: '/api/v1/endpoints' });

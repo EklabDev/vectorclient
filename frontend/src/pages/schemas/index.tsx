@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ApiClient } from '../../services/api';
+import { WeaviateExplorerModal } from '../../components/WeaviateExplorerModal';
 
 interface Schema {
   id: string;
@@ -28,6 +29,11 @@ export function SchemasPage() {
   });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [weaviateCounts, setWeaviateCounts] = useState<Record<string, number>>({});
+  const [weaviateExplorer, setWeaviateExplorer] = useState<{
+    schema: Schema;
+    mode: 'view' | 'edit';
+  } | null>(null);
 
   useEffect(() => {
     loadSchemas();
@@ -41,6 +47,19 @@ export function SchemasPage() {
       // Handle both array and object with message property
       if (Array.isArray(data)) {
         setSchemas(data);
+        const publishedIds = data
+          .filter((s) => s.isPublished && s.weaviateCollectionId)
+          .map((s) => s.id);
+        if (publishedIds.length > 0) {
+          try {
+            const { counts } = await ApiClient.postWeaviateBatchCounts(publishedIds);
+            setWeaviateCounts(counts);
+          } catch {
+            setWeaviateCounts({});
+          }
+        } else {
+          setWeaviateCounts({});
+        }
       } else if (data && typeof data === 'object' && 'message' in data) {
         setSchemas([]);
       } else {
@@ -150,8 +169,18 @@ export function SchemasPage() {
     return new Date(dateString).toLocaleString();
   };
 
+  const refreshWeaviateCount = async (schemaId: string) => {
+    try {
+      const { count } = await ApiClient.getWeaviateCount(schemaId);
+      setWeaviateCounts((c) => ({ ...c, [schemaId]: count }));
+    } catch {
+      /* ignore */
+    }
+  };
+
   return (
     <div>
+      <style>{`@keyframes schemas-card-spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#fff' }}>Schemas & Knowledge</h1>
         <button
@@ -214,7 +243,7 @@ export function SchemasPage() {
             overflowY: 'auto'
           }}>
             <h2 style={{ marginTop: 0, color: '#fff' }}>
-              {viewMode ? 'View Schema' : editingSchema ? 'Edit Schema' : 'Create New Schema'}
+              {viewMode ? 'View knowledge' : editingSchema ? 'Edit knowledge' : 'Create New Schema'}
             </h2>
             {viewMode && editingSchema && (
               <div style={{ 
@@ -440,6 +469,7 @@ export function SchemasPage() {
             <div
               key={schema.id}
               style={{
+                position: 'relative',
                 backgroundColor: '#27272a',
                 borderRadius: '8px',
                 border: '1px solid #3f3f46',
@@ -448,6 +478,32 @@ export function SchemasPage() {
                 flexDirection: 'column'
               }}
             >
+              {togglingId === schema.id && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    backgroundColor: 'rgba(0,0,0,0.45)',
+                    borderRadius: 8,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2,
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      border: '3px solid #3f3f46',
+                      borderTopColor: '#3b82f6',
+                      borderRadius: '50%',
+                      animation: 'schemas-card-spin 0.8s linear infinite',
+                    }}
+                  />
+                </div>
+              )}
               <h3 style={{ marginTop: 0, marginBottom: '8px', color: '#fff' }}>{schema.name}</h3>
               {schema.description && (
                 <p style={{ color: '#a1a1aa', fontSize: '14px', marginBottom: '12px' }}>
@@ -470,7 +526,29 @@ export function SchemasPage() {
                   )}
                 </div>
                 <div style={{ marginTop: '4px' }}>Updated: {formatDate(schema.updatedAt)}</div>
+                {schema.isPublished && schema.weaviateCollectionId && (
+                  <div style={{ marginTop: '6px', color: '#93c5fd' }}>
+                    Weaviate objects: {weaviateCounts[schema.id] ?? '—'}
+                  </div>
+                )}
               </div>
+              {schema.systemPrompt && (
+                <div
+                  style={{
+                    marginBottom: 10,
+                    padding: 10,
+                    backgroundColor: '#18181b',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    color: '#a1a1aa',
+                    maxHeight: 72,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <strong style={{ color: '#d4d4d8' }}>System prompt:</strong>{' '}
+                  {schema.systemPrompt.length > 180 ? `${schema.systemPrompt.slice(0, 180)}…` : schema.systemPrompt}
+                </div>
+              )}
               <div style={{
                 flex: 1,
                 marginBottom: '12px',
@@ -508,37 +586,81 @@ export function SchemasPage() {
                     ? (schema.isPublished ? 'Unpublishing...' : 'Publishing...') 
                     : (schema.isPublished ? 'Unpublish' : 'Publish')}
                 </button>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    onClick={() => handleView(schema)}
-                    style={{
-                      flex: 1,
-                      padding: '6px 12px',
-                      backgroundColor: '#3b82f6',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    View
-                  </button>
-                  <button
-                    onClick={() => handleEdit(schema)}
-                    style={{
-                      flex: 1,
-                      padding: '6px 12px',
-                      backgroundColor: '#3b82f6',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    Edit
-                  </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => handleView(schema)}
+                      style={{
+                        flex: 1,
+                        padding: '6px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px'
+                      }}
+                    >
+                      View KB
+                    </button>
+                    <button
+                      onClick={() => handleEdit(schema)}
+                      style={{
+                        flex: 1,
+                        padding: '6px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px'
+                      }}
+                    >
+                      Edit KB
+                    </button>
+                  </div>
+                  {schema.isPublished && schema.weaviateCollectionId && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        disabled={togglingId === schema.id}
+                        onClick={() => setWeaviateExplorer({ schema, mode: 'view' })}
+                        style={{
+                          flex: 1,
+                          padding: '6px 12px',
+                          backgroundColor: '#0d9488',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: togglingId === schema.id ? 'not-allowed' : 'pointer',
+                          opacity: togglingId === schema.id ? 0.5 : 1,
+                          fontSize: '13px'
+                        }}
+                      >
+                        Vectors
+                      </button>
+                      <button
+                        type="button"
+                        disabled={togglingId === schema.id}
+                        onClick={() => setWeaviateExplorer({ schema, mode: 'edit' })}
+                        style={{
+                          flex: 1,
+                          padding: '6px 12px',
+                          backgroundColor: '#7c3aed',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: togglingId === schema.id ? 'not-allowed' : 'pointer',
+                          opacity: togglingId === schema.id ? 0.5 : 1,
+                          fontSize: '13px'
+                        }}
+                      >
+                        Edit vectors
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: 8 }}>
                   <button
                     onClick={() => handleDelete(schema.id)}
                     disabled={deletingId === schema.id}
@@ -559,6 +681,27 @@ export function SchemasPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {weaviateExplorer && (
+        <WeaviateExplorerModal
+          open
+          schemaId={weaviateExplorer.schema.id}
+          schemaName={weaviateExplorer.schema.name}
+          systemPrompt={weaviateExplorer.schema.systemPrompt}
+          mode={weaviateExplorer.mode}
+          onClose={() => setWeaviateExplorer(null)}
+          onSystemPromptSaved={(prompt) => {
+            const id = weaviateExplorer.schema.id;
+            setSchemas((prev) =>
+              prev.map((s) => (s.id === id ? { ...s, systemPrompt: prompt } : s))
+            );
+            setWeaviateExplorer((ex) =>
+              ex && ex.schema.id === id ? { ...ex, schema: { ...ex.schema, systemPrompt: prompt } } : ex
+            );
+          }}
+          onWeaviateMutated={() => void refreshWeaviateCount(weaviateExplorer.schema.id)}
+        />
       )}
     </div>
   );

@@ -374,6 +374,153 @@ paths:
         '500':
           description: Weaviate sync failed
 
+  /api/schemas/weaviate/batch-counts:
+    post:
+      summary: Batch Weaviate object counts for published schemas
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids:
+                  type: array
+                  maxItems: 50
+                  items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Map of schema id to count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  counts:
+                    type: object
+                    additionalProperties: { type: integer }
+
+  /api/schemas/{id}/weaviate/objects:
+    get:
+      summary: List Weaviate chunk objects (max 500, truncated flag if more)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Objects and truncation flag
+        '400':
+          description: Not published or no collection
+        '404':
+          description: Schema not found
+    post:
+      summary: Create a chunk object in Weaviate
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, minLength: 1 }
+                originalReference: { type: string }
+      responses:
+        '200':
+          description: Created id and chunkIndex
+        '400':
+          description: Validation or not published
+        '404':
+          description: Schema not found
+
+  /api/schemas/{id}/weaviate/count:
+    get:
+      summary: Weaviate object count for a published schema
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Count (0 if draft)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count: { type: integer }
+
+  /api/schemas/{id}/weaviate/search:
+    post:
+      summary: Search chunks (BM25 or nearText vector mode), max 10 results
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query, mode]
+              properties:
+                query: { type: string, minLength: 1, maxLength: 4096 }
+                mode: { type: string, enum: [bm25, vector] }
+      responses:
+        '200':
+          description: Matching objects
+        '400':
+          description: Validation or not published
+        '404':
+          description: Schema not found
+
+  /api/schemas/{id}/weaviate/objects/{objectId}:
+    patch:
+      summary: Update chunk content only
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - name: objectId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: Updated
+        '400':
+          description: Not published
+        '404':
+          description: Schema not found
+    delete:
+      summary: Delete a chunk object
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - name: objectId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Deleted
+        '400':
+          description: Not published
+        '404':
+          description: Schema not found
+
   /api/logs/stats/24h:
     get:
       summary: Request count for last 24 hours (all user endpoints)
