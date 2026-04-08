@@ -254,7 +254,8 @@ export async function dynamicRoutes(app: FastifyInstance) {
             const associatedSchemas = await db
                 .select({ 
                     schemaId: endpointSchemas.schemaId,
-                    weaviateCollectionId: schemas.weaviateCollectionId
+                    weaviateCollectionId: schemas.weaviateCollectionId,
+                    systemPrompt: schemas.systemPrompt,
                 })
                 .from(endpointSchemas)
                 .innerJoin(schemas, eq(endpointSchemas.schemaId, schemas.id))
@@ -264,7 +265,7 @@ export async function dynamicRoutes(app: FastifyInstance) {
 
             const schemaId = associatedSchemas.length > 0 ? associatedSchemas[0].schemaId : null;
             const weaviateCollectionId = associatedSchemas.length > 0 ? associatedSchemas[0].weaviateCollectionId : null;
-
+            const systemPrompt = associatedSchemas.length > 0 ? associatedSchemas[0].systemPrompt : null;
             // Get request body and parse it
             const originalRequestBody = request.body as any;
             let requestBodyObj: any = {};
@@ -288,6 +289,7 @@ export async function dynamicRoutes(app: FastifyInstance) {
                 endpoint_id: endpointId,
                 ...(schemaId && { schema_id: schemaId }),
                 ...(weaviateCollectionId && { weaviate_collection_id: weaviateCollectionId }),
+                ...(systemPrompt && { system_prompt: systemPrompt }),
                 // Merge any additional fields from the original request body
                 ...Object.keys(requestBodyObj).reduce((acc, key) => {
                     // Skip base schema fields if they were in the original body
