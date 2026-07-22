@@ -2,6 +2,8 @@
 
 This guide provides documentation for three types of users: Web Developers, n8n Developers, and Account Owners.
 
+For drop-in native integrations (WordPress, Shopify, React, Vue, Svelte) with theme and configuration helpers, see the **[Channel integrations guide](./channel/README.md)**.
+
 ---
 
 ## Table of Contents
@@ -9,6 +11,7 @@ This guide provides documentation for three types of users: Web Developers, n8n 
 1. [Web Developer Guide](#web-developer-guide)
 2. [n8n Developer Guide](#n8n-developer-guide)
 3. [Account Owner Guide](#account-owner-guide)
+4. [Channel integrations](./channel/README.md)
 
 ---
 
@@ -94,8 +97,10 @@ The gateway will forward a combined body that includes:
 
 ### Complete Example
 
+Prefer a channel SDK when integrating from WordPress, Shopify, React, Vue, or Svelte — see [`channel/README.md`](./channel/README.md).
+
 ```javascript
-// JavaScript/TypeScript Example
+// JavaScript/TypeScript Example (raw fetch)
 const endpointId = '660e8400-e29b-41d4-a716-446655440001';
 const userId = '550e8400-e29b-41d4-a716-446655440000';
 const apiToken = 'sk_xxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
@@ -119,6 +124,25 @@ const response = await fetch(
 
 const data = await response.json();
 console.log(data);
+```
+
+```javascript
+// Shared channel SDK
+import { createClient } from '@vectorclient/channel-shared';
+
+const client = createClient({
+  baseUrl: 'https://your-api-gateway-domain.com',
+  apiKey: apiToken,
+  endpointId,
+  userId,
+});
+
+const { data } = await client.invoke({
+  customer_id: '12345',
+  order_amount: 99.99,
+  payment_method: 'credit_card',
+  file_url: 'https://s3.amazonaws.com/bucket/file.pdf',
+});
 ```
 
 ```bash
