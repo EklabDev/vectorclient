@@ -1,0 +1,19 @@
+{
+  "name": "vectorclient-channels",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Native channel integrations for VectorClient API Gateway",
+  "scripts": {
+    "build:shared": "npm --prefix shared run build",
+    "build": "npm run build:shared && npm --prefix react run build && npm --prefix vue run build && npm --prefix svelte run build && npm --prefix shopify run build",
+    "test:shared": "npm --prefix shared test",
+    "test:react": "npm --prefix react test",
+    "test:vue": "npm --prefix vue test",
+    "test:svelte": "npm --prefix svelte test",
+    "test:shopify": "npm --prefix shopify test",
+    "test:wordpress": "php wordpress/tests/run-tests.php",
+    "test": "npm run test:shared && npm run test:react && npm run test:vue && npm run test:svelte && npm run test:shopify && npm run test:wordpress",
+    "install:all": "npm --prefix shared install && npm run build:shared && npm --prefix react install && npm --prefix vue install && npm --prefix svelte install && npm --prefix shopify install"
+  },
+  "license": "MIT"
+}

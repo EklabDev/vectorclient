@@ -1,0 +1,33 @@
+{
+  "name": "@vectorclient/channel-vue",
+  "version": "1.0.0",
+  "description": "Vue native integration for VectorClient API Gateway",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "vue": ">=3.3"
+  },
+  "dependencies": {
+    "@vectorclient/channel-shared": "file:../shared"
+  },
+  "devDependencies": {
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^26.0.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.5",
+    "vue": "^3.5.13"
+  },
+  "license": "MIT"
+}

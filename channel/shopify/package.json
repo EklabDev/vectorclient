@@ -1,0 +1,27 @@
+{
+  "name": "@vectorclient/channel-shopify",
+  "version": "1.0.0",
+  "description": "Shopify channel helpers for VectorClient API Gateway",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "src", "theme"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vectorclient/channel-shared": "file:../shared"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.5"
+  },
+  "license": "MIT"
+}

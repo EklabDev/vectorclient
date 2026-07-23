@@ -1,0 +1,51 @@
+.vc-panel {
+  background: var(--vc-surface, #fff);
+  color: var(--vc-text, #0f172a);
+  font-family: var(--vc-font, sans-serif);
+  border: 1px solid #e2e8f0;
+  border-radius: var(--vc-radius, 8px);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  max-width: 480px;
+}
+
+.vc-panel__title {
+  margin: 0;
+  color: var(--vc-primary, #0f766e);
+}
+
+.vc-panel__form {
+  display: grid;
+  gap: 12px;
+}
+
+.vc-panel__input {
+  width: 100%;
+  font-family: ui-monospace, monospace;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--vc-radius, 8px);
+  padding: 8px;
+}
+
+.vc-panel__submit {
+  background: var(--vc-primary, #0f766e);
+  color: #fff;
+  border: 0;
+  border-radius: var(--vc-radius, 8px);
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.vc-panel__error {
+  color: #b91c1c;
+  margin: 0;
+}
+
+.vc-panel__result {
+  margin: 0;
+  background: #f8fafc;
+  padding: 8px;
+  border-radius: var(--vc-radius, 8px);
+  overflow: auto;
+}
