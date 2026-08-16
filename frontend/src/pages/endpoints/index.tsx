@@ -556,6 +556,7 @@ export function EndpointsPage() {
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>User ID</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Endpoint ID</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Route</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Native Agent URL</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Rate Limit</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Tokens</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Schemas</th>
@@ -571,6 +572,31 @@ export function EndpointsPage() {
                   <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace', fontSize: '12px' }}>{endpoint.userId}</td>
                   <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace', fontSize: '12px' }}>{endpoint.id}</td>
                   <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace' }}>{endpoint.route}</td>
+                  <td style={{ padding: '12px', color: '#93c5fd', fontFamily: 'monospace', fontSize: '11px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span title="POST this path with x-api-key (same auth as n8n proxy)">
+                        /api/v1/agents/{endpoint.id}/{endpoint.userId}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const path = `/api/v1/agents/${endpoint.id}/${endpoint.userId}`;
+                          navigator.clipboard?.writeText(path);
+                        }}
+                        style={{
+                          padding: '2px 6px',
+                          fontSize: 11,
+                          backgroundColor: '#3f3f46',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </td>
                   <td style={{ padding: '12px', color: '#a1a1aa' }}>
                     {endpoint.rateLimit} / {endpoint.rateLimitWindowMs / 1000}s
                   </td>

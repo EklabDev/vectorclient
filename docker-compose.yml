@@ -35,6 +35,34 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  neo4j:
+    image: neo4j:5-community
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: neo4j/password
+      NEO4J_PLUGINS: '[]'
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
   # backend:
   #   build:
   #     context: ./backend
@@ -46,6 +74,10 @@ services:
   #     DATABASE_URL: postgresql://api_user:secure_password@postgres:5432/api_gateway
   #     WEAVIATE_URL: http://weaviate:8080
   #     WEAVIATE_API_KEY: weaviate-key
+  #     REDIS_URL: redis://redis:6379
+  #     NEO4J_URI: bolt://neo4j:7687
+  #     NEO4J_AUTH: neo4j/password
+  #     AGENT_MODEL: gpt-4o-mini
   #     JWT_SECRET: dev-jwt-secret-change-in-production
   #     AES_SECRET: dev-aes-secret-32-char-minimum!
   #     CORS_ORIGIN: http://localhost:3000
@@ -54,6 +86,10 @@ services:
   #     postgres:
   #       condition: service_healthy
   #     weaviate:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     neo4j:
   #       condition: service_healthy
   #   volumes:
   #     - ./backend:/app
@@ -78,3 +114,5 @@ services:
 volumes:
   postgres_data:
   weaviate_data:
+  redis_data:
+  neo4j_data:

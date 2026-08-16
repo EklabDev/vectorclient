@@ -7,6 +7,7 @@ import { DashboardPage } from './pages/dashboard';
 import { EndpointsPage } from './pages/endpoints';
 import { SchemasPage } from './pages/schemas';
 import { TokensPage } from './pages/tokens';
+import { ScrapeSourcesPage } from './pages/scrape';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/endpoints" element={<EndpointsPage />} />
           <Route path="/schemas" element={<SchemasPage />} />
+          <Route path="/scrape" element={<ScrapeSourcesPage />} />
           <Route path="/tokens" element={<TokensPage />} />
         </Route>
 
