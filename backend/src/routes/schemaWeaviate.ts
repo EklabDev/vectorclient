@@ -12,7 +12,7 @@ import {
 
 const searchBodySchema = z.object({
   query: z.string().min(1).max(WEAVIATE_SEARCH_QUERY_MAX),
-  mode: z.enum(['bm25', 'vector']),
+  mode: z.enum(['bm25', 'vector', 'hybrid']),
 });
 
 const CATEGORY_MAX = 50;

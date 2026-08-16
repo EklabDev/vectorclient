@@ -172,11 +172,59 @@ export const callLogs = pgTable(
   })
 );
 
+// Scrape sources (website crawl configs per client)
+export const scrapeSources = pgTable(
+  'scrape_sources',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    schemaId: uuid('schema_id').references(() => schemas.id, { onDelete: 'set null' }),
+    name: varchar('name', { length: 255 }).notNull(),
+    seedUrl: text('seed_url').notNull(),
+    allowedDomains: jsonb('allowed_domains').notNull().default(sql`'[]'::jsonb`),
+    maxDepth: integer('max_depth').notNull().default(2),
+    maxPages: integer('max_pages').notNull().default(50),
+    isActive: boolean('is_active').notNull().default(true),
+    status: varchar('status', { length: 50 }).notNull().default('idle'), // idle|running|failed|completed
+    weaviateCollectionId: varchar('weaviate_collection_id', { length: 255 }).unique(),
+    lastCrawledAt: timestamp('last_crawled_at'),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index('scrape_sources_user_id_idx').on(table.userId),
+  })
+);
+
+// Scrape jobs
+export const scrapeJobs = pgTable(
+  'scrape_jobs',
+  {
+    id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+    sourceId: uuid('source_id')
+      .notNull()
+      .references(() => scrapeSources.id, { onDelete: 'cascade' }),
+    status: varchar('status', { length: 50 }).notNull().default('queued'), // queued|running|completed|failed
+    pagesCrawled: integer('pages_crawled').notNull().default(0),
+    error: text('error'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+    completedAt: timestamp('completed_at'),
+  },
+  (table) => ({
+    sourceIdIdx: index('scrape_jobs_source_id_idx').on(table.sourceId),
+  })
+);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   apiTokens: many(apiTokens),
   endpoints: many(endpoints),
   schemas: many(schemas),
+  scrapeSources: many(scrapeSources),
 }));
 
 export const endpointsRelations = relations(endpoints, ({ one, many }) => ({
@@ -185,4 +233,14 @@ export const endpointsRelations = relations(endpoints, ({ one, many }) => ({
   forwardingFlows: many(forwardingFlows),
   schemas: many(endpointSchemas),
   callLogs: many(callLogs),
+}));
+
+export const scrapeSourcesRelations = relations(scrapeSources, ({ one, many }) => ({
+  user: one(users, { fields: [scrapeSources.userId], references: [users.id] }),
+  schema: one(schemas, { fields: [scrapeSources.schemaId], references: [schemas.id] }),
+  jobs: many(scrapeJobs),
+}));
+
+export const scrapeJobsRelations = relations(scrapeJobs, ({ one }) => ({
+  source: one(scrapeSources, { fields: [scrapeJobs.sourceId], references: [scrapeSources.id] }),
 }));

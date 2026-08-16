@@ -8,8 +8,7 @@ import { EncryptionService } from '../utils/encryption';
 
 export async function dynamicRoutes(app: FastifyInstance) {
     // Dynamic routes might not require JWT auth if they are public APIs protected by API Tokens
-    // We should apply rate limiting here
-    // app.addHook('onRequest', rateLimitMiddleware); // Commented out until fully implemented as rateLimitMiddleware needs fixing/testing
+    app.addHook('preHandler', rateLimitMiddleware);
     
     // POST /api/v1/endpoints/:endpoint_id/:user_id
     app.post('/:endpoint_id/:user_id', async (request: FastifyRequest, reply: FastifyReply) => {

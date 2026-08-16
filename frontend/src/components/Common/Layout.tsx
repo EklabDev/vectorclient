@@ -62,6 +62,19 @@ export function Layout() {
           >
             Schemas (Knowledge)
           </Link>
+          <Link 
+            to="/scrape" 
+            style={{ 
+              textDecoration: 'none', 
+              color: isActive('/scrape') ? '#fff' : '#a1a1aa',
+              fontWeight: isActive('/scrape') ? 'bold' : 'normal',
+               padding: '8px 12px',
+              borderRadius: '6px',
+              backgroundColor: isActive('/scrape') ? '#3f3f46' : 'transparent'
+            }}
+          >
+            Scrape Sources
+          </Link>
            <Link 
             to="/tokens" 
             style={{ 

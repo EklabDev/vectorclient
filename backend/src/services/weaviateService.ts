@@ -160,22 +160,35 @@ export class WeaviateService {
   }
 
   /**
-   * BM25 or nearText search; returns at most `limit` objects (default WEAVIATE_SEARCH_MAX).
+   * BM25, nearText, or hybrid search; returns at most `limit` objects (default WEAVIATE_SEARCH_MAX).
+   * Optional category equality filter for agent tool use.
    */
   static async searchChunkObjects(
     className: string,
     query: string,
-    mode: 'bm25' | 'vector',
-    limit: number = WEAVIATE_SEARCH_MAX
+    mode: 'bm25' | 'vector' | 'hybrid' = 'bm25',
+    limit: number = WEAVIATE_SEARCH_MAX,
+    category?: string
   ): Promise<WeaviateChunkObject[]> {
     const client = this.getClient();
     const fields =
       'content originalReference schemaId schemaName version chunkIndex category subcategory _additional { id score }';
-    const base = client.graphql.get().withClassName(className).withFields(fields).withLimit(limit);
+    let builder = client.graphql.get().withClassName(className).withFields(fields).withLimit(limit);
+
+    if (category && category.trim()) {
+      builder = builder.withWhere({
+        path: ['category'],
+        operator: 'Equal',
+        valueText: category.trim(),
+      });
+    }
+
     const result =
       mode === 'bm25'
-        ? await base.withBm25({ query }).do()
-        : await base.withNearText({ concepts: [query] }).do();
+        ? await builder.withBm25({ query }).do()
+        : mode === 'hybrid'
+          ? await builder.withHybrid({ query }).do()
+          : await builder.withNearText({ concepts: [query] }).do();
     const raw = (result.data?.Get?.[className] as Record<string, unknown>[]) || [];
     return raw
       .map((o) => this.mapChunkObject(o))
