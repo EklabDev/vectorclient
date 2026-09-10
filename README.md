@@ -1,6 +1,6 @@
 # VectorClient API Gateway - User Guide
 
-This guide provides documentation for three types of users: Web Developers, n8n Developers, and Account Owners.
+This guide provides documentation for four types of users: Web Developers, n8n Developers, Agent Developers, and Account Owners.
 
 For drop-in native integrations (WordPress, Shopify, React, Vue, Svelte) with theme and configuration helpers, see the **[Channel integrations guide](./channel/README.md)**.
 
@@ -10,8 +10,9 @@ For drop-in native integrations (WordPress, Shopify, React, Vue, Svelte) with th
 
 1. [Web Developer Guide](#web-developer-guide)
 2. [n8n Developer Guide](#n8n-developer-guide)
-3. [Account Owner Guide](#account-owner-guide)
-4. [Channel integrations](./channel/README.md)
+3. [Agent Developer Guide](#agent-developer-guide)
+4. [Account Owner Guide](#account-owner-guide)
+5. [Channel integrations](./channel/README.md)
 
 ---
 
@@ -316,6 +317,85 @@ If your webhook returns an error status code (4xx or 5xx), the gateway will:
 2. Check the request/response bodies in the logs
 3. Verify that `user_id`, `endpoint_id`, and `schema_id` are present
 4. Test Weaviate queries using the `schema_id`
+
+---
+
+## Agent Developer Guide
+
+### Overview
+
+The native AI agent runs **inside** the VectorClient backend (no n8n). It uses OpenAI tool calling to query **Weaviate** (semantic/keyword search), **Neo4j** (structured relationships), and **Redis** (short-lived cache / conversation memory). The existing n8n proxy at `/api/v1/endpoints/...` is unchanged — migrate by switching the client URL.
+
+### Endpoint
+
+```
+POST /api/v1/agents/:endpoint_id/:user_id
+```
+
+Same authentication as the n8n proxy: `x-api-key` header with an API token linked to the endpoint.
+
+### Request
+
+```json
+{
+  "message": "When is Robotics Youth Squad?",
+  "conversation_id": "optional-uuid"
+}
+```
+
+Any extra JSON fields are passed to the model as additional context.
+
+### Response
+
+```json
+{
+  "reply": "Robotics Youth Squad runs on Saturdays at 10:00.",
+  "conversation_id": "…"
+}
+```
+
+Reuse `conversation_id` on later turns to keep Redis-backed chat memory (when `REDIS_URL` is set).
+
+### Example
+
+```bash
+curl -X POST \
+  "https://your-api-gateway-domain.com/api/v1/agents/$ENDPOINT_ID/$USER_ID" \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: sk_xxxxxxxx_…" \
+  -d '{"message":"What programs are available for ages 8–14?"}'
+```
+
+### Tools available to the agent
+
+| Tool | Store | Purpose |
+| --- | --- | --- |
+| `search_knowledge` | Weaviate | BM25 / vector / hybrid search over published schemas (+ scrape collections) linked to the endpoint |
+| `graph_get_entity` / `graph_related` | Neo4j | Structured lookups (Program → Location → Schedule, contacts, etc.) |
+| `cache_get` / `cache_set` | Redis | Short-lived per-client cache (keys are suffixes under `vc:{userId}:`) |
+
+Credentials for Weaviate/Neo4j/Redis are **never** exposed to the model. Collections and graph rows are scoped to the endpoint owner.
+
+### Knowledge sources
+
+1. **Schemas** — publish knowledge bases in the dashboard (same as today). System prompts on schemas become agent instructions.
+2. **Scrape sources** — configure seed URLs under **Scrape Sources**; crawls write `Scrape_{id}` Weaviate collections and Neo4j entities. Linked scrape data is searchable via `search_knowledge` when the source’s user matches the endpoint.
+
+### Infrastructure env vars
+
+- `OPENAI_API_KEY`, `AGENT_MODEL` (default `gpt-4o-mini`)
+- `WEAVIATE_URL`, `WEAVIATE_API_KEY`
+- `REDIS_URL` (optional but recommended)
+- `NEO4J_URI`, `NEO4J_AUTH` (optional; graph tools no-op if unset)
+
+Docker Compose includes `postgres`, `weaviate`, `redis`, and `neo4j`.
+
+### Migrating off n8n
+
+1. Keep calling `/api/v1/endpoints/...` until ready.
+2. Point clients at `/api/v1/agents/...` with the same endpoint ID, user ID, and API key.
+3. Confirm published schemas (and optional scrape sources) cover the questions n8n answered.
+4. Deprecate n8n webhooks only after traffic has moved.
 
 ---
 

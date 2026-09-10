@@ -262,4 +262,43 @@ export class ApiClient {
   static getRequests24h() {
     return this.request('/api/logs/stats/24h');
   }
+
+  // Scrape sources
+  static getScrapeSources() {
+    return this.request('/api/scrape-sources');
+  }
+
+  static createScrapeSource(data: {
+    name: string;
+    seedUrl: string;
+    schemaId?: string | null;
+    allowedDomains?: string[];
+    maxDepth?: number;
+    maxPages?: number;
+    isActive?: boolean;
+  }) {
+    return this.request('/api/scrape-sources', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static updateScrapeSource(id: string, data: Record<string, unknown>) {
+    return this.request(`/api/scrape-sources/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  static deleteScrapeSource(id: string) {
+    return this.request(`/api/scrape-sources/${id}`, { method: 'DELETE' });
+  }
+
+  static triggerScrapeCrawl(id: string) {
+    return this.request(`/api/scrape-sources/${id}/crawl`, { method: 'POST' });
+  }
+
+  static getScrapeJobs(id: string) {
+    return this.request(`/api/scrape-sources/${id}/jobs`);
+  }
 }

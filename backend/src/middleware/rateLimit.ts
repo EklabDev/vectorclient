@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { db } from '../config/database';
 import { endpoints } from '../database/schema';
 import { eq } from 'drizzle-orm';
+import { RedisService } from '../services/redisService';
 
 interface RateLimitBucket {
   tokens: number;
@@ -10,40 +11,51 @@ interface RateLimitBucket {
 
 const buckets = new Map<string, RateLimitBucket>();
 
-export async function rateLimitMiddleware(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
+/**
+ * Rate limit by endpoint config. Uses Redis when REDIS_URL is set;
+ * falls back to in-memory token bucket for local/dev without Redis.
+ */
+export async function rateLimitMiddleware(request: FastifyRequest, reply: FastifyReply) {
   try {
-    // Get endpoint config
-    const route = request.url.split('?')[0];
-    // This assumes the route in DB matches the request URL path exactly for now.
-    // In a real router, we might need to match patterns, but for this guide it implies direct match or we need to lookup properly.
-    // For dynamic routes like /api/v1/endpoints/:user/:route, we might need more logic.
-    // But let's follow the guide's logic for now.
-
-    const [endpoint] = await db
-      .select()
-      .from(endpoints)
-      .where(eq(endpoints.route, route))
-      .limit(1);
+    const params = request.params as { endpoint_id?: string; user_id?: string } | undefined;
+    let endpoint =
+      params?.endpoint_id && params?.user_id
+        ? (
+            await db
+              .select()
+              .from(endpoints)
+              .where(eq(endpoints.id, params.endpoint_id))
+              .limit(1)
+          )[0]
+        : undefined;
 
     if (!endpoint) {
-      return; // Not a managed endpoint, or let the router handle 404/others
+      const route = request.url.split('?')[0];
+      const [byRoute] = await db.select().from(endpoints).where(eq(endpoints.route, route)).limit(1);
+      endpoint = byRoute;
     }
 
+    if (!endpoint) return;
+
     const bucketKey = `${request.ip}-${endpoint.id}`;
+
+    if (RedisService.isEnabled()) {
+      const allowed = await RedisService.consumeRateLimit(
+        bucketKey,
+        endpoint.rateLimit,
+        endpoint.rateLimitWindowMs
+      );
+      if (!allowed) {
+        reply.code(429).send({ error: 'Rate limit exceeded' });
+      }
+      return;
+    }
+
     const now = Date.now();
-
     let bucket = buckets.get(bucketKey);
-
     if (!bucket) {
-      bucket = {
-        tokens: endpoint.rateLimit,
-        lastRefill: now,
-      };
+      bucket = { tokens: endpoint.rateLimit, lastRefill: now };
     } else {
-      // Refill tokens based on elapsed time
       const elapsed = now - bucket.lastRefill;
       const tokensToAdd = (elapsed / endpoint.rateLimitWindowMs) * endpoint.rateLimit;
       bucket.tokens = Math.min(endpoint.rateLimit, bucket.tokens + tokensToAdd);
@@ -57,9 +69,12 @@ export async function rateLimitMiddleware(
 
     bucket.tokens -= 1;
     buckets.set(bucketKey, bucket);
-
   } catch (error) {
-    // Log but don't fail the request
     console.error('Rate limit check failed:', error);
   }
+}
+
+export async function rateLimitPreHandler(request: FastifyRequest, reply: FastifyReply) {
+  await rateLimitMiddleware(request, reply);
+  if (reply.sent) return;
 }

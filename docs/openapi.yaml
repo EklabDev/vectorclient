@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
   title: Vector Client API
-  description: API for managing endpoints, schemas (knowledge base), tokens, and logs.
-  version: 1.0.0
+  description: API for managing endpoints, schemas (knowledge base), scrape sources, native AI agents, tokens, and logs.
+  version: 1.1.0
 
 servers:
   - url: http://localhost:3001
@@ -565,6 +565,148 @@ paths:
         '404':
           description: Endpoint not found or inactive
 
+  /api/v1/agents/{endpoint_id}/{user_id}:
+    post:
+      summary: Invoke native AI agent
+      description: |
+        Runs an in-process OpenAI tool-calling agent against Weaviate / Neo4j / Redis.
+        Same x-api-key auth as /api/v1/endpoints. Does not forward to n8n.
+      parameters:
+        - name: endpoint_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, minLength: 1, maxLength: 16000 }
+                conversation_id: { type: string, format: uuid }
+              additionalProperties: true
+      responses:
+        '200':
+          description: Agent reply
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply: { type: string }
+                  conversation_id: { type: string, format: uuid }
+        '400':
+          description: Invalid body
+        '403':
+          description: API token invalid or missing
+        '404':
+          description: Endpoint not found or inactive
+
+  /api/scrape-sources:
+    get:
+      summary: List scrape sources
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Scrape sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScrapeSource'
+    post:
+      summary: Create scrape source
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, seedUrl]
+              properties:
+                name: { type: string }
+                seedUrl: { type: string, format: uri }
+                schemaId: { type: string, format: uuid, nullable: true }
+                allowedDomains: { type: array, items: { type: string } }
+                maxDepth: { type: integer }
+                maxPages: { type: integer }
+                isActive: { type: boolean }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScrapeSource'
+
+  /api/scrape-sources/{id}:
+    patch:
+      summary: Update scrape source
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Updated
+        '404':
+          description: Not found
+    delete:
+      summary: Delete scrape source
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Deleted
+
+  /api/scrape-sources/{id}/crawl:
+    post:
+      summary: Trigger crawl job
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '202':
+          description: Crawl queued or started inline
+        '409':
+          description: Crawl already running
+
+  /api/scrape-sources/{id}/jobs:
+    get:
+      summary: List crawl jobs for a source
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Jobs
+
 components:
   securitySchemes:
     bearerAuth:
@@ -675,3 +817,19 @@ components:
         isActive: { type: boolean }
         apiTokenIds: { type: array, items: { type: string, format: uuid } }
         schemaIds: { type: array, items: { type: string, format: uuid } }
+
+    ScrapeSource:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        seedUrl: { type: string, format: uri }
+        schemaId: { type: string, format: uuid, nullable: true }
+        allowedDomains: { type: array, items: { type: string } }
+        maxDepth: { type: integer }
+        maxPages: { type: integer }
+        isActive: { type: boolean }
+        status: { type: string }
+        weaviateCollectionId: { type: string, nullable: true }
+        lastCrawledAt: { type: string, format: date-time, nullable: true }
+        lastError: { type: string, nullable: true }

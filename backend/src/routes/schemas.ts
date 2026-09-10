@@ -182,6 +182,20 @@ export async function schemaRoutes(app: FastifyInstance) {
                   body.description !== undefined ? body.description : existing.description
                 );
             updateData.weaviateCollectionId = collectionName;
+
+            // Best-effort graph extract into Neo4j (no-op if NEO4J_URI unset)
+            try {
+              const { GraphExtractService } = await import('../services/graphExtractService');
+              const contentForGraph =
+                body.content !== undefined ? body.content : existing.content;
+              await GraphExtractService.extractAndUpsert(
+                userId,
+                [{ content: contentForGraph.slice(0, 12000) }],
+                { sourceId: id }
+              );
+            } catch (graphError) {
+              console.error('Failed to extract graph from schema:', graphError);
+            }
           }
         } catch (weaviateError) {
           console.error('Failed to sync schema to Weaviate:', weaviateError);

@@ -9,6 +9,9 @@ import { schemaRoutes } from './routes/schemas';
 import { schemaWeaviateRoutes } from './routes/schemaWeaviate';
 import { logRoutes } from './routes/logs';
 import { dynamicRoutes } from './routes/dynamic';
+import { agentRoutes } from './routes/agents';
+import { scrapeSourceRoutes } from './routes/scrapeSources';
+import { startScrapeWorker } from './services/scrape/scrapeWorker';
 
 config();
 
@@ -41,10 +44,13 @@ app.register(endpointRoutes, { prefix: '/api/endpoints' });
 app.register(schemaWeaviateRoutes, { prefix: '/api/schemas' });
 app.register(schemaRoutes, { prefix: '/api/schemas' });
 app.register(logRoutes, { prefix: '/api/logs' });
+app.register(scrapeSourceRoutes, { prefix: '/api/scrape-sources' });
 app.register(dynamicRoutes, { prefix: '/api/v1/endpoints' });
+app.register(agentRoutes, { prefix: '/api/v1/agents' });
 
 const start = async () => {
   try {
+    startScrapeWorker();
     await app.listen({ port: parseInt(process.env.PORT || '3001'), host: '0.0.0.0' });
     console.log(`Server running at http://localhost:${process.env.PORT || 3001}`);
   } catch (err) {
