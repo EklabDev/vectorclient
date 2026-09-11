@@ -6,7 +6,7 @@ import type {
   AgentToolContext,
   AgentToolDefinition,
 } from './types';
-import { searchKnowledgeTool } from './tools/weaviateTool';
+import { searchKnowledgeTool } from './tools/knowledgeTool';
 
 const MAX_TOOL_TURNS = 8;
 const DEFAULT_MODEL = 'gpt-4o-mini';
@@ -50,11 +50,10 @@ function toOpenAITools(tools: AgentToolDefinition[]): OpenAI.Chat.Completions.Ch
 }
 
 export class AgentService {
-  /** Base tools always available; Redis/Neo4j tools register here when configured. */
+  /** Base tools always available; Redis cache and ArcadeDB graph tools register when present. */
   static getTools(): AgentToolDefinition[] {
     const tools: AgentToolDefinition[] = [searchKnowledgeTool];
     try {
-      // Lazy require so Phase 1 works before Redis/Neo4j modules exist in all envs
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { cacheTools } = require('./tools/cacheTool') as {
         cacheTools: AgentToolDefinition[];
@@ -64,7 +63,6 @@ export class AgentService {
       /* optional */
     }
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { graphTools } = require('./tools/graphTool') as {
         graphTools: AgentToolDefinition[];
       };

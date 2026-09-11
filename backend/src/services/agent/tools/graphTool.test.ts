@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const getEntity = vi.fn();
 const findRelated = vi.fn();
 
-vi.mock('../../neo4jService', () => ({
-  Neo4jService: {
+vi.mock('../../arcadeGraphService', () => ({
+  ArcadeGraphService: {
     isEnabled: () => true,
     getEntity: (...args: unknown[]) => getEntity(...args),
     findRelated: (...args: unknown[]) => findRelated(...args),

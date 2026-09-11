@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ApiClient } from '../../services/api';
 import { Autocomplete } from '../../components/Common/Autocomplete';
+import { CrmPanel } from '../../components/CrmPanel';
 
 interface Token {
   id: string;
@@ -71,6 +72,7 @@ export function EndpointsPage() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState('');
   const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
+  const [crmEndpointId, setCrmEndpointId] = useState<string | null>(null);
 
   const loadTokens = async () => {
     try {
@@ -669,6 +671,20 @@ export function EndpointsPage() {
                         View Logs
                       </button>
                       <button
+                        onClick={() => setCrmEndpointId(endpoint.id)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#6366f1',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }}
+                      >
+                        CRM
+                      </button>
+                      <button
                         onClick={() => handleEdit(endpoint)}
                         style={{
                           padding: '6px 12px',
@@ -949,6 +965,9 @@ export function EndpointsPage() {
             </div>
           </div>
         </div>
+      )}
+      {crmEndpointId && (
+        <CrmPanel endpointId={crmEndpointId} onClose={() => setCrmEndpointId(null)} />
       )}
     </div>
   );

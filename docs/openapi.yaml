@@ -360,7 +360,7 @@ paths:
 
   /api/schemas/{id}/sync-weaviate:
     post:
-      summary: Manually sync schema to Weaviate
+      summary: Manually sync schema chunks and graph into ArcadeDB
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdPath'
@@ -372,11 +372,11 @@ paths:
         '404':
           description: Not found
         '500':
-          description: Weaviate sync failed
+          description: ArcadeDB sync failed
 
-  /api/schemas/weaviate/batch-counts:
+  /api/schemas/knowledge/batch-counts:
     post:
-      summary: Batch Weaviate object counts for published schemas
+      summary: Batch ArcadeDB chunk counts for published schemas
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -402,9 +402,9 @@ paths:
                     type: object
                     additionalProperties: { type: integer }
 
-  /api/schemas/{id}/weaviate/objects:
+  /api/schemas/{id}/knowledge/objects:
     get:
-      summary: List Weaviate chunk objects (max 500, truncated flag if more)
+      summary: List knowledge chunk objects (max 500, truncated flag if more)
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdPath'
@@ -412,11 +412,11 @@ paths:
         '200':
           description: Objects and truncation flag
         '400':
-          description: Not published or no collection
+          description: Not published
         '404':
           description: Schema not found
     post:
-      summary: Create a chunk object in Weaviate
+      summary: Create a chunk object in ArcadeDB
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdPath'
@@ -440,9 +440,9 @@ paths:
         '404':
           description: Schema not found
 
-  /api/schemas/{id}/weaviate/count:
+  /api/schemas/{id}/knowledge/count:
     get:
-      summary: Weaviate object count for a published schema
+      summary: Chunk count for a published schema
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdPath'
@@ -456,9 +456,9 @@ paths:
                 properties:
                   count: { type: integer }
 
-  /api/schemas/{id}/weaviate/search:
+  /api/schemas/{id}/knowledge/search:
     post:
-      summary: Search chunks (BM25 or nearText vector mode), max 10 results
+      summary: Search chunks (bm25, vector, or hybrid), max 10 results
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdPath'
@@ -471,7 +471,7 @@ paths:
               required: [query, mode]
               properties:
                 query: { type: string, minLength: 1, maxLength: 4096 }
-                mode: { type: string, enum: [bm25, vector] }
+                mode: { type: string, enum: [bm25, vector, hybrid] }
       responses:
         '200':
           description: Matching objects
@@ -480,9 +480,9 @@ paths:
         '404':
           description: Schema not found
 
-  /api/schemas/{id}/weaviate/objects/{objectId}:
+  /api/schemas/{id}/knowledge/objects/{objectId}:
     patch:
-      summary: Partial update chunk (merge/PATCH; omit keys you do not want to change)
+      summary: Partial update chunk (omit keys you do not want to change)
       security: [{ bearerAuth: [] }]
       parameters:
         - $ref: '#/components/parameters/IdPath'
@@ -569,7 +569,8 @@ paths:
     post:
       summary: Invoke native AI agent
       description: |
-        Runs an in-process OpenAI tool-calling agent against Weaviate / Neo4j / Redis.
+        Runs CRM collection (if triggered), then a pre-LLM topic gate, then an OpenAI
+        tool-calling agent against ArcadeDB knowledge/graph plus Redis cache.
         Same x-api-key auth as /api/v1/endpoints. Does not forward to n8n.
       parameters:
         - name: endpoint_id
@@ -602,6 +603,8 @@ paths:
                 properties:
                   reply: { type: string }
                   conversation_id: { type: string, format: uuid }
+                  filtered: { type: boolean, description: True when the topic gate refused the turn without calling the chat model }
+                  workflow: { type: boolean, description: True when a CRM collection workflow handled the turn }
         '400':
           description: Invalid body
         '403':
@@ -707,6 +710,159 @@ paths:
         '200':
           description: Jobs
 
+  /api/studio/query:
+    post:
+      summary: Run SQL or Cypher against the caller's knowledge database
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [command]
+              properties:
+                language: { type: string, enum: [sql, cypher, gremlin], default: sql }
+                command: { type: string }
+                params: { type: object }
+      responses:
+        '200':
+          description: Query result rows
+        '400':
+          description: Invalid query
+
+  /api/studio/schema:
+    get:
+      summary: List types and indexes in the caller's knowledge database
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Types and indexes
+
+  /api/endpoints/{id}/crm/webhooks:
+    get:
+      summary: List CRM webhooks for an endpoint
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Webhooks
+    post:
+      summary: Create a CRM webhook
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, url]
+              properties:
+                name: { type: string }
+                url: { type: string, format: uri }
+                method: { type: string }
+                headers: { type: object, additionalProperties: { type: string } }
+                timeoutMs: { type: integer }
+                enabled: { type: boolean }
+      responses:
+        '200':
+          description: Created webhook
+
+  /api/endpoints/{id}/crm/webhooks/{webhookId}/test:
+    post:
+      summary: Send a sample payload to a CRM webhook
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - name: webhookId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payload: { type: object }
+      responses:
+        '200':
+          description: Upstream status and body
+
+  /api/endpoints/{id}/crm/schema:
+    get:
+      summary: Get CRM JSON Schema for collected fields
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: JSON Schema
+    put:
+      summary: Upsert CRM JSON Schema
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [jsonSchema]
+              properties:
+                jsonSchema: { type: object }
+      responses:
+        '200':
+          description: Saved schema
+
+  /api/endpoints/{id}/crm/workflows:
+    get:
+      summary: List CRM collection workflows
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Workflows
+    post:
+      summary: Create a CRM collection workflow
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, trigger, steps]
+              properties:
+                name: { type: string }
+                webhookId: { type: string, format: uuid, nullable: true }
+                trigger:
+                  type: object
+                  properties:
+                    keywords: { type: array, items: { type: string } }
+                    phrases: { type: array, items: { type: string } }
+                steps:
+                  type: array
+                  items:
+                    type: object
+                    required: [field, prompt]
+                    properties:
+                      field: { type: string }
+                      prompt: { type: string }
+                      required: { type: boolean }
+                confirmMessage: { type: string }
+                enabled: { type: boolean }
+      responses:
+        '200':
+          description: Created workflow
+
 components:
   securitySchemes:
     bearerAuth:
@@ -740,7 +896,6 @@ components:
           description: Optional system prompt for AI agents (client hint; server does not enforce maxLength)
         version: { type: integer }
         isPublished: { type: boolean }
-        weaviateCollectionId: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
 
@@ -786,6 +941,12 @@ components:
         allowedOrigins: { type: array, items: { type: string } }
         description: { type: string, nullable: true }
         isActive: { type: boolean }
+        topicFilter:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            minSimilarity: { type: number }
+            offTopicReply: { type: string }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
         apiTokens: { type: array, items: { $ref: '#/components/schemas/Token' } }
@@ -804,6 +965,12 @@ components:
         isActive: { type: boolean }
         apiTokenIds: { type: array, items: { type: string, format: uuid } }
         schemaIds: { type: array, items: { type: string, format: uuid } }
+        topicFilter:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            minSimilarity: { type: number }
+            offTopicReply: { type: string }
 
     UpdateEndpoint:
       type: object
@@ -817,6 +984,12 @@ components:
         isActive: { type: boolean }
         apiTokenIds: { type: array, items: { type: string, format: uuid } }
         schemaIds: { type: array, items: { type: string, format: uuid } }
+        topicFilter:
+          type: object
+          properties:
+            enabled: { type: boolean }
+            minSimilarity: { type: number }
+            offTopicReply: { type: string }
 
     ScrapeSource:
       type: object
@@ -830,6 +1003,5 @@ components:
         maxPages: { type: integer }
         isActive: { type: boolean }
         status: { type: string }
-        weaviateCollectionId: { type: string, nullable: true }
         lastCrawledAt: { type: string, format: date-time, nullable: true }
         lastError: { type: string, nullable: true }

@@ -1,11 +1,13 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { db } from '../config/database';
-import { endpointSchemas, schemas } from '../database/schema';
-import { eq, and, asc } from 'drizzle-orm';
-import { WeaviateService } from '../services/weaviateService';
+import { v4 as uuidv4 } from 'uuid';
+import { Endpoints, parseTopicFilter } from '../store/endpoints';
+import { Schemas } from '../store/schemas';
 import { AgentService } from '../services/agent/agentService';
 import type { KnowledgeCollection } from '../services/agent/types';
+import { loadScrapeCollectionsForEndpoint } from '../services/scrape/scrapeCollections';
+import { evaluateTopicGate } from '../services/agent/topicGate';
+import { loadWorkflowState, runCollectionTurn } from '../services/agent/crmWorkflow';
 import {
   authenticateEndpointRequest,
   logEndpointCall,
@@ -21,52 +23,30 @@ const agentBodySchema = z
   .passthrough();
 
 async function loadLinkedCollections(endpointId: string): Promise<KnowledgeCollection[]> {
-  const rows = await db
-    .select({
-      schemaId: schemas.id,
-      schemaName: schemas.name,
-      weaviateCollectionId: schemas.weaviateCollectionId,
-      systemPrompt: schemas.systemPrompt,
-      isPublished: schemas.isPublished,
-    })
-    .from(endpointSchemas)
-    .innerJoin(schemas, eq(endpointSchemas.schemaId, schemas.id))
-    .where(
-      and(eq(endpointSchemas.endpointId, endpointId), eq(schemas.isPublished, true))
-    )
-    .orderBy(asc(endpointSchemas.order));
-
+  const links = await Endpoints.schemaLinks(endpointId);
   const collections: KnowledgeCollection[] = [];
-  for (const row of rows) {
-    if (!row.weaviateCollectionId) continue;
+  for (const link of links) {
+    const schema = await Schemas.findById(link.schemaId);
+    if (!schema?.isPublished) continue;
     collections.push({
-      schemaId: row.schemaId,
-      schemaName: row.schemaName,
-      className: WeaviateService.resolveClassName(row.schemaId, row.weaviateCollectionId),
-      systemPrompt: row.systemPrompt,
+      schemaId: schema.id,
+      schemaName: schema.name,
+      className: schema.id,
+      systemPrompt: schema.systemPrompt,
       sourceType: 'schema',
     });
   }
-
-  // Optional scrape collections (Phase 4) — ignore if module/table missing
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { loadScrapeCollectionsForEndpoint } = require('../services/scrape/scrapeCollections') as {
-      loadScrapeCollectionsForEndpoint: (endpointId: string) => Promise<KnowledgeCollection[]>;
-    };
-    const scrape = await loadScrapeCollectionsForEndpoint(endpointId);
-    collections.push(...scrape);
+    collections.push(...(await loadScrapeCollectionsForEndpoint(endpointId)));
   } catch {
-    /* scrape not available yet */
+    /* scrape optional */
   }
-
   return collections;
 }
 
 export async function agentRoutes(app: FastifyInstance) {
   app.addHook('preHandler', rateLimitMiddleware);
 
-  // POST /api/v1/agents/:endpoint_id/:user_id
   app.post('/:endpoint_id/:user_id', async (request: FastifyRequest, reply: FastifyReply) => {
     const startTime = Date.now();
     const params = request.params as { endpoint_id: string; user_id: string };
@@ -75,20 +55,15 @@ export async function agentRoutes(app: FastifyInstance) {
     let endpointIdForLog: string | null = null;
 
     try {
-      const auth = await authenticateEndpointRequest(
-        request,
-        params.endpoint_id,
-        params.user_id
-      );
+      const auth = await authenticateEndpointRequest(request, params.endpoint_id, params.user_id);
       endpointIdForLog = auth.endpoint?.id ?? null;
       apiTokenId = auth.apiTokenId;
-
       if (!auth.ok) {
         reply.code(auth.statusCode).send({ message: auth.message });
         if (auth.endpoint) {
           await logEndpointCall({
             endpointId: auth.endpoint.id,
-            apiTokenId: auth.apiTokenId,
+            apiTokenId,
             method: meta.method,
             path: meta.path,
             status: auth.statusCode,
@@ -124,28 +99,80 @@ export async function agentRoutes(app: FastifyInstance) {
       }
 
       const { message, conversation_id, ...rest } = parsed.data;
-      const reserved = new Set(['message', 'conversation_id']);
       const extraContext: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(rest)) {
-        if (!reserved.has(k)) extraContext[k] = v;
+        if (k !== 'message' && k !== 'conversation_id') extraContext[k] = v;
+      }
+
+      const conversationId = conversation_id?.trim() || uuidv4();
+      const wfState = await loadWorkflowState(params.user_id, conversationId);
+      const collection = await runCollectionTurn({
+        userId: params.user_id,
+        endpointId: auth.endpoint.id,
+        conversationId,
+        message,
+        state: wfState,
+      });
+      if (collection.handled && collection.reply) {
+        const responseBody = {
+          reply: collection.reply,
+          conversation_id: conversationId,
+          filtered: false,
+          workflow: true,
+        };
+        reply.code(200).send(responseBody);
+        await logEndpointCall({
+          endpointId: auth.endpoint.id,
+          apiTokenId,
+          method: meta.method,
+          path: meta.path,
+          status: 200,
+          requestBody: request.body,
+          responseBody,
+          responseTime: Date.now() - startTime,
+          ipAddress: meta.ipAddress,
+          userAgent: meta.userAgent,
+          errorMessage: null,
+        });
+        return;
       }
 
       const collections = await loadLinkedCollections(auth.endpoint.id);
+      const topic = await evaluateTopicGate({
+        userId: params.user_id,
+        message,
+        schemaIds: collections.filter((c) => c.sourceType === 'schema').map((c) => c.schemaId),
+        filter: parseTopicFilter(auth.endpoint.topicFilterJson),
+      });
+      if (!topic.allow) {
+        const responseBody = { reply: topic.reply, conversation_id: conversationId, filtered: true };
+        reply.code(200).send(responseBody);
+        await logEndpointCall({
+          endpointId: auth.endpoint.id,
+          apiTokenId,
+          method: meta.method,
+          path: meta.path,
+          status: 200,
+          requestBody: request.body,
+          responseBody,
+          responseTime: Date.now() - startTime,
+          ipAddress: meta.ipAddress,
+          userAgent: meta.userAgent,
+          errorMessage: null,
+        });
+        return;
+      }
+
       const result = await AgentService.run({
         userId: params.user_id,
         endpointId: auth.endpoint.id,
         message,
-        conversationId: conversation_id,
+        conversationId,
         extraContext,
         collections,
       });
-
-      const responseBody = {
-        reply: result.reply,
-        conversation_id: result.conversationId,
-      };
+      const responseBody = { reply: result.reply, conversation_id: result.conversationId, filtered: false };
       reply.code(200).send(responseBody);
-
       await logEndpointCall({
         endpointId: auth.endpoint.id,
         apiTokenId,
@@ -153,10 +180,7 @@ export async function agentRoutes(app: FastifyInstance) {
         path: meta.path,
         status: 200,
         requestBody: request.body,
-        responseBody: {
-          ...responseBody,
-          tool_calls: result.toolCalls,
-        },
+        responseBody: { ...responseBody, tool_calls: result.toolCalls },
         responseTime: Date.now() - startTime,
         ipAddress: meta.ipAddress,
         userAgent: meta.userAgent,

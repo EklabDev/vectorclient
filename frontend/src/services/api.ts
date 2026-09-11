@@ -127,9 +127,9 @@ export class ApiClient {
     return this.request(`/api/schemas/${id}`, { method: 'DELETE' });
   }
 
-  /** Batch Weaviate object counts for schema cards (published only). */
+  /** Batch knowledge object counts for schema cards (published only). */
   static postWeaviateBatchCounts(ids: string[]) {
-    return this.request<{ counts: Record<string, number> }>('/api/schemas/weaviate/batch-counts', {
+    return this.request<{ counts: Record<string, number> }>('/api/schemas/knowledge/batch-counts', {
       method: 'POST',
       body: JSON.stringify({ ids }),
     });
@@ -137,16 +137,16 @@ export class ApiClient {
 
   static getWeaviateObjects(schemaId: string) {
     return this.request<{ objects: WeaviateChunkObject[]; truncated: boolean }>(
-      `/api/schemas/${schemaId}/weaviate/objects`
+      `/api/schemas/${schemaId}/knowledge/objects`
     );
   }
 
   static getWeaviateCount(schemaId: string) {
-    return this.request<{ count: number }>(`/api/schemas/${schemaId}/weaviate/count`);
+    return this.request<{ count: number }>(`/api/schemas/${schemaId}/knowledge/count`);
   }
 
-  static searchWeaviateObjects(schemaId: string, body: { query: string; mode: 'bm25' | 'vector' }) {
-    return this.request<{ objects: WeaviateChunkObject[] }>(`/api/schemas/${schemaId}/weaviate/search`, {
+  static searchWeaviateObjects(schemaId: string, body: { query: string; mode: 'bm25' | 'vector' | 'hybrid' }) {
+    return this.request<{ objects: WeaviateChunkObject[] }>(`/api/schemas/${schemaId}/knowledge/search`, {
       method: 'POST',
       body: JSON.stringify(body),
     });
@@ -161,26 +161,26 @@ export class ApiClient {
       subcategory?: string;
     }
   ) {
-    return this.request<{ id: string; chunkIndex: number }>(`/api/schemas/${schemaId}/weaviate/objects`, {
+    return this.request<{ id: string; chunkIndex: number }>(`/api/schemas/${schemaId}/knowledge/objects`, {
       method: 'POST',
       body: JSON.stringify(body),
     });
   }
 
-  /** Merge-update chunk fields (omit a key to leave that field unchanged in Weaviate). */
+  /** Merge-update chunk fields (omit a key to leave that field unchanged). */
   static patchWeaviateChunk(
     schemaId: string,
     objectId: string,
     body: { content?: string; category?: string; subcategory?: string }
   ) {
-    return this.request<{ ok: boolean }>(`/api/schemas/${schemaId}/weaviate/objects/${objectId}`, {
+    return this.request<{ ok: boolean }>(`/api/schemas/${schemaId}/knowledge/objects/${objectId}`, {
       method: 'PATCH',
       body: JSON.stringify(body),
     });
   }
 
   static deleteWeaviateObject(schemaId: string, objectId: string) {
-    return this.request<{ ok: boolean }>(`/api/schemas/${schemaId}/weaviate/objects/${objectId}`, {
+    return this.request<{ ok: boolean }>(`/api/schemas/${schemaId}/knowledge/objects/${objectId}`, {
       method: 'DELETE',
     });
   }
@@ -300,5 +300,63 @@ export class ApiClient {
 
   static getScrapeJobs(id: string) {
     return this.request(`/api/scrape-sources/${id}/jobs`);
+  }
+
+  static studioQuery(body: {
+    language: 'sql' | 'cypher' | 'gremlin';
+    command: string;
+    database?: 'knowledge' | 'gateway';
+    params?: Record<string, unknown>;
+  }) {
+    return this.request<{ result: unknown[]; elapsedMs: number; database: string }>('/api/studio/query', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
+  static studioSchema(database: 'knowledge' | 'gateway' = 'knowledge') {
+    return this.request<{ database: string; types: unknown[]; indexes: unknown[] }>(
+      `/api/studio/schema?database=${database}`
+    );
+  }
+
+  static getCrmWebhooks(endpointId: string) {
+    return this.request(`/api/endpoints/${endpointId}/crm/webhooks`);
+  }
+  static createCrmWebhook(endpointId: string, data: Record<string, unknown>) {
+    return this.request(`/api/endpoints/${endpointId}/crm/webhooks`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+  static deleteCrmWebhook(endpointId: string, webhookId: string) {
+    return this.request(`/api/endpoints/${endpointId}/crm/webhooks/${webhookId}`, { method: 'DELETE' });
+  }
+  static testCrmWebhook(endpointId: string, webhookId: string, payload: Record<string, unknown>) {
+    return this.request(`/api/endpoints/${endpointId}/crm/webhooks/${webhookId}/test`, {
+      method: 'POST',
+      body: JSON.stringify({ payload }),
+    });
+  }
+  static getCrmSchema(endpointId: string) {
+    return this.request<{ jsonSchema: Record<string, unknown> }>(`/api/endpoints/${endpointId}/crm/schema`);
+  }
+  static putCrmSchema(endpointId: string, jsonSchema: Record<string, unknown>) {
+    return this.request(`/api/endpoints/${endpointId}/crm/schema`, {
+      method: 'PUT',
+      body: JSON.stringify({ jsonSchema }),
+    });
+  }
+  static getCrmWorkflows(endpointId: string) {
+    return this.request(`/api/endpoints/${endpointId}/crm/workflows`);
+  }
+  static createCrmWorkflow(endpointId: string, data: Record<string, unknown>) {
+    return this.request(`/api/endpoints/${endpointId}/crm/workflows`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+  static deleteCrmWorkflow(endpointId: string, workflowId: string) {
+    return this.request(`/api/endpoints/${endpointId}/crm/workflows/${workflowId}`, { method: 'DELETE' });
   }
 }

@@ -194,7 +194,7 @@ curl -X POST \
 ## n8n Developer Guide
 
 ### Overview
-As an n8n developer, you'll configure webhooks in n8n to receive requests from the VectorClient API Gateway. The gateway forwards requests with base schema information that you can use to retrieve context from Weaviate.
+As an n8n developer, you'll configure webhooks in n8n to receive requests from the VectorClient API Gateway. The gateway forwards requests with base schema information (`user_id`, `endpoint_id`, `schema_id`) that you can use as correlation keys.
 
 ### Webhook Configuration
 
@@ -225,19 +225,11 @@ The gateway will forward requests with the following structure:
 }
 ```
 
-### Using Schema ID to Retrieve Context from Weaviate
+### Using Schema ID for Knowledge Context
 
-The `schema_id` field in the request body corresponds to a schema stored in Weaviate. Use this ID to retrieve relevant context/knowledge for processing the request.
+The `schema_id` field in the request body is the UUID of a published knowledge schema. Chunks and graph entities for that schema live in the caller's ArcadeDB knowledge database (`kb<userid>`).
 
-#### Step 1: Get Schema Information
-1. The `schema_id` is the UUID of the schema associated with the endpoint
-2. Each schema has a `weaviateCollectionId` that maps to a Weaviate collection
-
-#### Step 2: Query Weaviate
-Use the `schema_id` to:
-1. Look up the schema's `weaviateCollectionId` from the VectorClient API
-2. Query the corresponding Weaviate collection using the collection ID
-3. Retrieve relevant context/knowledge based on the request data
+The native agent (`POST /api/v1/agents/:endpoint_id/:user_id`) searches those chunks automatically. n8n workflows can still use `schema_id` as a correlation key; they do not query ArcadeDB directly.
 
 #### Example n8n Workflow
 
@@ -253,16 +245,11 @@ Use the `schema_id` to:
      Authorization: Bearer <your-jwt-token>
    ```
 
-3. **Weaviate Query Node**
-   - Use the `weaviateCollectionId` from the schema
-   - Query Weaviate with relevant search terms from the request body
-   - Retrieve context/knowledge
+3. **Process Request Node**
+   - Use `schema_id` plus the original request body
+   - Or call `/api/v1/agents/...` when you want the gateway to answer from knowledge
 
-4. **Process Request Node**
-   - Use the retrieved context to process the request
-   - Combine original request data with Weaviate context
-
-5. **Response Node**
+4. **Response Node**
    - Return processed response
 
 ### Headers Forwarded
@@ -299,7 +286,7 @@ Your n8n webhook should return a JSON response. The gateway will forward this re
   "processed_data": {
     "customer_id": "12345",
     "order_amount": 99.99,
-    "context_from_weaviate": "..."
+    "context_from_knowledge": "..."
   }
 }
 ```
@@ -316,7 +303,7 @@ If your webhook returns an error status code (4xx or 5xx), the gateway will:
 1. Use the VectorClient dashboard to view call logs
 2. Check the request/response bodies in the logs
 3. Verify that `user_id`, `endpoint_id`, and `schema_id` are present
-4. Test Weaviate queries using the `schema_id`
+4. Use the native agent or the Studio query console to inspect knowledge for that `schema_id`
 
 ---
 
@@ -324,7 +311,7 @@ If your webhook returns an error status code (4xx or 5xx), the gateway will:
 
 ### Overview
 
-The native AI agent runs **inside** the VectorClient backend (no n8n). It uses OpenAI tool calling to query **Weaviate** (semantic/keyword search), **Neo4j** (structured relationships), and **Redis** (short-lived cache / conversation memory). The existing n8n proxy at `/api/v1/endpoints/...` is unchanged — migrate by switching the client URL.
+The native AI agent runs **inside** the VectorClient backend (no n8n). It uses OpenAI tool calling to query **ArcadeDB** (semantic/keyword search over chunks plus a structured knowledge graph) and **Redis** (short-lived cache / conversation memory). Off-topic messages (math, generic chatter) are filtered before the LLM. CRM collection workflows can gather lead fields and POST to a webhook. The existing n8n proxy at `/api/v1/endpoints/...` is unchanged — migrate by switching the client URL.
 
 ### Endpoint
 
@@ -370,25 +357,28 @@ curl -X POST \
 
 | Tool | Store | Purpose |
 | --- | --- | --- |
-| `search_knowledge` | Weaviate | BM25 / vector / hybrid search over published schemas (+ scrape collections) linked to the endpoint |
-| `graph_get_entity` / `graph_related` | Neo4j | Structured lookups (Program → Location → Schedule, contacts, etc.) |
+| `search_knowledge` | ArcadeDB | Vector / full-text / hybrid search over published schemas and scrape chunks in the user's `kb_*` database |
+| `graph_get_entity` / `graph_related` | ArcadeDB | Cypher lookups (Program → Location → Schedule, contacts, etc.) |
 | `cache_get` / `cache_set` | Redis | Short-lived per-client cache (keys are suffixes under `vc:{userId}:`) |
 
-Credentials for Weaviate/Neo4j/Redis are **never** exposed to the model. Collections and graph rows are scoped to the endpoint owner.
+ArcadeDB root credentials and Redis are **never** exposed to the model. Knowledge is scoped to a per-user ArcadeDB database created at registration.
+
+Off-topic turns (math, jokes, unrelated questions) are dropped **before** the chat model: the gateway embeds the message, compares it to published chunks, and returns a canned `filtered: true` reply. Active CRM collection workflows skip that gate so answers like “Jane” still fill slots.
+
+CRM webhooks are not a free-form HTTP tool. Configure a webhook, JSON Schema, and collection workflow on the endpoint; the agent asks for each field, validates, then POSTs the payload.
 
 ### Knowledge sources
 
-1. **Schemas** — publish knowledge bases in the dashboard (same as today). System prompts on schemas become agent instructions.
-2. **Scrape sources** — configure seed URLs under **Scrape Sources**; crawls write `Scrape_{id}` Weaviate collections and Neo4j entities. Linked scrape data is searchable via `search_knowledge` when the source’s user matches the endpoint.
+1. **Schemas** — publish knowledge bases in the dashboard. System prompts on schemas become agent instructions. Publish writes `Chunk` vertices plus entity/edge graph rows in one ArcadeDB transaction.
+2. **Scrape sources** — configure seed URLs under **Scrape**; crawls chunk, embed, and write the same `Chunk` + graph types. Linked scrape data is searchable via `search_knowledge`.
 
 ### Infrastructure env vars
 
-- `OPENAI_API_KEY`, `AGENT_MODEL` (default `gpt-4o-mini`)
-- `WEAVIATE_URL`, `WEAVIATE_API_KEY`
-- `REDIS_URL` (optional but recommended)
-- `NEO4J_URI`, `NEO4J_AUTH` (optional; graph tools no-op if unset)
+- `OPENAI_API_KEY`, `AGENT_MODEL` (default `gpt-4o-mini`), `EMBEDDING_MODEL` (default `text-embedding-3-small`)
+- `ARCADEDB_URL`, `ARCADEDB_USER`, `ARCADEDB_PASSWORD`, `ARCADEDB_GATEWAY_DB` (default `gateway`)
+- `REDIS_URL` (rate limits, agent memory, BullMQ scrape queue, CRM workflow state)
 
-Docker Compose includes `postgres`, `weaviate`, `redis`, and `neo4j`.
+Docker Compose runs **ArcadeDB** and **Redis** as two containers on the same network. The Node backend talks to ArcadeDB over `http://arcadedb:2480` with HTTP Basic auth. Do not publish ArcadeDB ports in production.
 
 ### Migrating off n8n
 
@@ -607,7 +597,7 @@ View the usage history for a specific token, including:
 
 ### Creating Schemas (Knowledge Base)
 
-Schemas are used to store context/knowledge in Weaviate that can be retrieved by n8n workflows.
+Schemas are knowledge bases. When published, they are chunked, embedded, and stored as ArcadeDB `Chunk` vertices (plus a typed entity graph) in your private `kb_*` database.
 
 **Endpoint:** `POST /api/schemas`
 
@@ -636,7 +626,6 @@ Schemas are used to store context/knowledge in Weaviate that can be retrieved by
   "content": "# Payment Processing\n\n...",
   "version": 1,
   "isPublished": true,
-  "weaviateCollectionId": "PaymentProcessing_12345",
   "createdAt": "2026-01-25T22:00:00Z",
   "updatedAt": "2026-01-25T22:00:00Z"
 }
@@ -711,7 +700,7 @@ View call history for a specific endpoint, including:
      - Base URL: `https://your-api-gateway-domain.com/api/v1/endpoints`
    - Provide n8n developers with:
      - Webhook URL (the `route` field)
-     - Information about schema IDs and Weaviate collections
+     - Information about schema IDs (knowledge is stored in ArcadeDB, not a separate vector DB)
 
 6. **Monitor Usage**
    - View call logs in the dashboard

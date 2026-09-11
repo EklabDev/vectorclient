@@ -1,5 +1,5 @@
 import type { AgentToolDefinition } from '../types';
-import { Neo4jService, GraphEntityType, GraphRelType } from '../../neo4jService';
+import { ArcadeGraphService, GraphEntityType, GraphRelType } from '../../arcadeGraphService';
 
 const ENTITY_TYPES: GraphEntityType[] = [
   'Organization',
@@ -11,13 +11,7 @@ const ENTITY_TYPES: GraphEntityType[] = [
   'ChunkRef',
 ];
 
-const REL_TYPES: GraphRelType[] = [
-  'OFFERS',
-  'LOCATED_AT',
-  'HAS_SCHEDULE',
-  'HAS_CONTACT',
-  'MENTIONS',
-];
+const REL_TYPES: GraphRelType[] = ['OFFERS', 'LOCATED_AT', 'HAS_SCHEDULE', 'HAS_CONTACT', 'MENTIONS'];
 
 function asEntityType(value: unknown): GraphEntityType {
   const v = String(value ?? '');
@@ -29,8 +23,7 @@ function asEntityType(value: unknown): GraphEntityType {
 
 export const graphGetEntityTool: AgentToolDefinition = {
   name: 'graph_get_entity',
-  description:
-    'Look up a structured entity in the client knowledge graph (programs, locations, contacts, etc.).',
+  description: 'Look up a structured entity in the client knowledge graph (programs, locations, contacts, etc.).',
   parameters: {
     type: 'object',
     properties: {
@@ -40,37 +33,32 @@ export const graphGetEntityTool: AgentToolDefinition = {
     required: ['type', 'name'],
   },
   async execute(args, ctx) {
-    if (!Neo4jService.isEnabled()) {
+    if (!ArcadeGraphService.isEnabled()) {
       return { entity: null, message: 'Graph database is not configured' };
     }
     const type = asEntityType(args.type);
     const name = String(args.name ?? '').trim();
     if (!name) throw new Error('name is required');
-    const entity = await Neo4jService.getEntity(ctx.userId, type, name);
+    const entity = await ArcadeGraphService.getEntity(ctx.userId, type, name);
     return { entity };
   },
 };
 
 export const graphRelatedTool: AgentToolDefinition = {
   name: 'graph_related',
-  description:
-    'Find entities related to a given entity in the client knowledge graph (depth 1–2).',
+  description: 'Find entities related to a given entity in the client knowledge graph (depth 1–2).',
   parameters: {
     type: 'object',
     properties: {
       type: { type: 'string', enum: ENTITY_TYPES },
       name: { type: 'string' },
-      relationship: {
-        type: 'string',
-        enum: REL_TYPES,
-        description: 'Optional relationship filter',
-      },
+      relationship: { type: 'string', enum: REL_TYPES, description: 'Optional relationship filter' },
       depth: { type: 'number', description: '1 or 2 (default 1)' },
     },
     required: ['type', 'name'],
   },
   async execute(args, ctx) {
-    if (!Neo4jService.isEnabled()) {
+    if (!ArcadeGraphService.isEnabled()) {
       return { related: [], message: 'Graph database is not configured' };
     }
     const type = asEntityType(args.type);
@@ -81,7 +69,7 @@ export const graphRelatedTool: AgentToolDefinition = {
         ? (args.relationship as GraphRelType)
         : undefined;
     const depth = typeof args.depth === 'number' ? args.depth : 1;
-    const related = await Neo4jService.findRelated(ctx.userId, type, name, rel, depth);
+    const related = await ArcadeGraphService.findRelated(ctx.userId, type, name, rel, depth);
     return { related };
   },
 };

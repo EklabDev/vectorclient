@@ -1,39 +1,26 @@
 version: '3.8'
 
-services:
-  postgres:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: api_user
-      POSTGRES_PASSWORD: secure_password
-      POSTGRES_DB: api_gateway
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U api_user -d api_gateway"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+# Two data-plane containers on the Compose network: ArcadeDB (JVM) + Redis.
+# Node talks to ArcadeDB over http://arcadedb:2480 with HTTP Basic auth
+# (ARCADEDB_USER / ARCADEDB_PASSWORD). Do not publish 2480 in production.
 
-  weaviate:
-    image: semitechnologies/weaviate:latest
+services:
+  arcadedb:
+    image: arcadedata/arcadedb:26.5.1
     ports:
-      - "8080:8080"
+      - "2480:2480"
     environment:
-      QUERY_DEFAULTS_LIMIT: 25
-      AUTHENTICATION_APIKEY_ENABLED: 'true'
-      AUTHENTICATION_APIKEY_ALLOWED_KEYS: weaviate-key
-      AUTHENTICATION_APIKEY_USERS: admin
-      OPENAI_APIKEY: ${OPENAI_APIKEY}
+      JAVA_OPTS: >-
+        -Darcadedb.server.rootPassword=${ARCADEDB_PASSWORD:-arcadedb}
+        -Darcadedb.server.mode=development
     volumes:
-      - weaviate_data:/var/lib/weaviate
+      - arcadedb_data:/home/arcadedb/databases
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/.well-known/ready"]
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/2480'"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 25s
 
   redis:
     image: redis:7-alpine
@@ -47,22 +34,6 @@ services:
       timeout: 5s
       retries: 5
 
-  neo4j:
-    image: neo4j:5-community
-    ports:
-      - "7474:7474"
-      - "7687:7687"
-    environment:
-      NEO4J_AUTH: neo4j/password
-      NEO4J_PLUGINS: '[]'
-    volumes:
-      - neo4j_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-
   # backend:
   #   build:
   #     context: ./backend
@@ -71,25 +42,22 @@ services:
   #     - "3001:3001"
   #   environment:
   #     NODE_ENV: development
-  #     DATABASE_URL: postgresql://api_user:secure_password@postgres:5432/api_gateway
-  #     WEAVIATE_URL: http://weaviate:8080
-  #     WEAVIATE_API_KEY: weaviate-key
+  #     ARCADEDB_URL: http://arcadedb:2480
+  #     ARCADEDB_USER: root
+  #     ARCADEDB_PASSWORD: ${ARCADEDB_PASSWORD:-arcadedb}
+  #     ARCADEDB_GATEWAY_DB: gateway
   #     REDIS_URL: redis://redis:6379
-  #     NEO4J_URI: bolt://neo4j:7687
-  #     NEO4J_AUTH: neo4j/password
   #     AGENT_MODEL: gpt-4o-mini
+  #     EMBEDDING_MODEL: text-embedding-3-small
   #     JWT_SECRET: dev-jwt-secret-change-in-production
   #     AES_SECRET: dev-aes-secret-32-char-minimum!
   #     CORS_ORIGIN: http://localhost:3000
   #     PORT: 3001
+  #     OPENAI_API_KEY: ${OPENAI_API_KEY}
   #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     weaviate:
+  #     arcadedb:
   #       condition: service_healthy
   #     redis:
-  #       condition: service_healthy
-  #     neo4j:
   #       condition: service_healthy
   #   volumes:
   #     - ./backend:/app
@@ -112,7 +80,5 @@ services:
   #   command: npm run dev
 
 volumes:
-  postgres_data:
-  weaviate_data:
+  arcadedb_data:
   redis_data:
-  neo4j_data:
