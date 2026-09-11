@@ -75,7 +75,12 @@ function escapeRe(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function extractSlots(message: string, steps: WorkflowStep[], current: Record<string, string>): Record<string, string> {
+export function extractSlots(
+  message: string,
+  steps: WorkflowStep[],
+  current: Record<string, string>,
+  opts: { leftover?: boolean } = {}
+): Record<string, string> {
   const next = { ...current };
   const email = message.match(EMAIL_RE)?.[0];
   const phone = message.match(PHONE_RE)?.[0];
@@ -90,7 +95,8 @@ export function extractSlots(message: string, steps: WorkflowStep[], current: Re
     .replace(EMAIL_RE, '')
     .replace(PHONE_RE, '')
     .trim();
-  if (missing[0] && leftover && leftover.length < 120 && !leftover.includes('?')) {
+  const allowLeftover = opts.leftover !== false;
+  if (allowLeftover && missing[0] && leftover && leftover.length < 120 && !leftover.includes('?')) {
     next[missing[0].field] = leftover;
   }
   return next;
@@ -163,9 +169,11 @@ export async function runCollectionTurn(input: {
     if (!workflow) return { handled: false };
     state = { workflowId: workflow.id, slots: {} };
   }
+  if (!state) return { handled: false };
 
   const steps = parseSteps(workflow.stepsJson);
-  const slots = extractSlots(input.message, steps, state.slots);
+  const continuing = Boolean(input.state);
+  const slots = extractSlots(input.message, steps, state.slots, { leftover: continuing });
   const missing = nextMissingStep(steps, slots);
   if (missing) {
     await saveWorkflowState(input.userId, input.conversationId, { workflowId: workflow.id, slots });

@@ -24,7 +24,7 @@ export declare class ApiClient {
     static createSchema(data: any): Promise<unknown>;
     static updateSchema(id: string, data: any): Promise<unknown>;
     static deleteSchema(id: string): Promise<unknown>;
-    /** Batch Weaviate object counts for schema cards (published only). */
+    /** Batch knowledge object counts for schema cards (published only). */
     static postWeaviateBatchCounts(ids: string[]): Promise<{
         counts: Record<string, number>;
     }>;
@@ -37,7 +37,7 @@ export declare class ApiClient {
     }>;
     static searchWeaviateObjects(schemaId: string, body: {
         query: string;
-        mode: 'bm25' | 'vector';
+        mode: 'bm25' | 'vector' | 'hybrid';
     }): Promise<{
         objects: WeaviateChunkObject[];
     }>;
@@ -50,7 +50,7 @@ export declare class ApiClient {
         id: string;
         chunkIndex: number;
     }>;
-    /** Merge-update chunk fields (omit a key to leave that field unchanged in Weaviate). */
+    /** Merge-update chunk fields (omit a key to leave that field unchanged). */
     static patchWeaviateChunk(schemaId: string, objectId: string, body: {
         content?: string;
         category?: string;
@@ -72,4 +72,44 @@ export declare class ApiClient {
     static getLogStats(endpointId: string): Promise<unknown>;
     static getTokenLogs(tokenId: string, query?: any): Promise<unknown>;
     static getRequests24h(): Promise<unknown>;
+    static getScrapeSources(): Promise<unknown>;
+    static createScrapeSource(data: {
+        name: string;
+        seedUrl: string;
+        schemaId?: string | null;
+        allowedDomains?: string[];
+        maxDepth?: number;
+        maxPages?: number;
+        isActive?: boolean;
+    }): Promise<unknown>;
+    static updateScrapeSource(id: string, data: Record<string, unknown>): Promise<unknown>;
+    static deleteScrapeSource(id: string): Promise<unknown>;
+    static triggerScrapeCrawl(id: string): Promise<unknown>;
+    static getScrapeJobs(id: string): Promise<unknown>;
+    static studioQuery(body: {
+        language: 'sql' | 'cypher' | 'gremlin';
+        command: string;
+        database?: 'knowledge' | 'gateway';
+        params?: Record<string, unknown>;
+    }): Promise<{
+        result: unknown[];
+        elapsedMs: number;
+        database: string;
+    }>;
+    static studioSchema(database?: 'knowledge' | 'gateway'): Promise<{
+        database: string;
+        types: unknown[];
+        indexes: unknown[];
+    }>;
+    static getCrmWebhooks(endpointId: string): Promise<unknown>;
+    static createCrmWebhook(endpointId: string, data: Record<string, unknown>): Promise<unknown>;
+    static deleteCrmWebhook(endpointId: string, webhookId: string): Promise<unknown>;
+    static testCrmWebhook(endpointId: string, webhookId: string, payload: Record<string, unknown>): Promise<unknown>;
+    static getCrmSchema(endpointId: string): Promise<{
+        jsonSchema: Record<string, unknown>;
+    }>;
+    static putCrmSchema(endpointId: string, jsonSchema: Record<string, unknown>): Promise<unknown>;
+    static getCrmWorkflows(endpointId: string): Promise<unknown>;
+    static createCrmWorkflow(endpointId: string, data: Record<string, unknown>): Promise<unknown>;
+    static deleteCrmWorkflow(endpointId: string, workflowId: string): Promise<unknown>;
 }

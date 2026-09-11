@@ -40,7 +40,7 @@ export const Endpoints = {
     const row = await findOne<EndpointDoc>('Endpoint', { route });
     return row ? normalizeEndpoint(row) : null;
   },
-  async create(input: Omit<EndpointDoc, 'createdAt' | 'updatedAt' | 'topicFilterJson'> & {
+  async create(input: Omit<EndpointDoc, 'id' | 'createdAt' | 'updatedAt' | 'topicFilterJson'> & {
     topicFilter?: TopicFilter;
     id?: string;
   }): Promise<EndpointDoc> {
