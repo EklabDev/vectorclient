@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# tsc -b emitDeclarationOnly artifacts
+src/**/*.d.ts
+!src/vite-env.d.ts
+!src/services/api.d.ts
+!src/components/WeaviateExplorerModal.d.ts
+vite.config.d.ts

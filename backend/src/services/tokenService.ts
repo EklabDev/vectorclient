@@ -1,17 +1,12 @@
-import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
-import { db, pool } from '../config/database';
-import { apiTokens } from '../database/schema';
-import { eq, and, sql } from 'drizzle-orm';
 import { EncryptionService } from '../utils/encryption';
+import { Tokens } from '../store/tokens';
 
 export class TokenService {
   static generateToken(): { prefix: string; full: string } {
     const prefix = 'sk_' + crypto.randomBytes(4).toString('hex');
     const secret = crypto.randomBytes(32).toString('hex');
-    const full = prefix + '_' + secret;
-
-    return { prefix, full };
+    return { prefix, full: prefix + '_' + secret };
   }
 
   static async createToken(
@@ -20,75 +15,29 @@ export class TokenService {
     expiresIn?: number
   ): Promise<{ token: string; tokenId: string; prefix: string }> {
     const { prefix, full } = this.generateToken();
-    const hashedToken = EncryptionService.hash(full);
-
-    const tokenId = uuidv4();
-    
-    // Calculate expiresAt if expiresIn is provided
-    const expiresAtValue = (expiresIn && expiresIn > 0)
-      ? new Date(Date.now() + expiresIn * 24 * 60 * 60 * 1000)
-      : null;
-
-    // Use raw SQL to handle nullable expires_at field correctly
-    // Use parameterized query for security
-    const query = `
-      INSERT INTO api_tokens (
-        id, user_id, token_name, token_value, token_prefix, expires_at
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6
-      ) RETURNING id
-    `;
-
-    const result = await pool.query(query, [
-      tokenId,
+    const expiresAt =
+      expiresIn && expiresIn > 0
+        ? new Date(Date.now() + expiresIn * 24 * 60 * 60 * 1000).toISOString()
+        : null;
+    const row = await Tokens.create({
       userId,
       tokenName,
-      hashedToken,
-      prefix,
-      expiresAtValue, // This will be NULL if not provided, which PostgreSQL handles correctly
-    ]);
-    
-    return {
-      token: full, // Only shown once
-      tokenId: result.rows[0].id,
-      prefix,
-    };
+      tokenValue: EncryptionService.hash(full),
+      tokenPrefix: prefix,
+      expiresAt,
+    });
+    return { token: full, tokenId: row.id, prefix };
   }
 
   static async validateToken(token: string): Promise<string | null> {
-    const hashedToken = EncryptionService.hash(token);
-
-    const [result] = await db
-      .select()
-      .from(apiTokens)
-      .where(
-        and(
-          eq(apiTokens.tokenValue, hashedToken),
-          eq(apiTokens.isActive, true)
-        )
-      )
-      .limit(1);
-
+    const result = await Tokens.findByHash(EncryptionService.hash(token));
     if (!result) return null;
-
-    // Check expiration
-    if (result.expiresAt && new Date(result.expiresAt) < new Date()) {
-      return null;
-    }
-
-    // Update last used
-    await db
-      .update(apiTokens)
-      .set({ lastUsedAt: new Date() })
-      .where(eq(apiTokens.id, result.id));
-
+    if (result.expiresAt && new Date(result.expiresAt) < new Date()) return null;
+    await Tokens.touchLastUsed(result.id);
     return result.userId;
   }
 
   static async revokeToken(tokenId: string): Promise<void> {
-    await db
-      .update(apiTokens)
-      .set({ isActive: false })
-      .where(eq(apiTokens.id, tokenId));
+    await Tokens.revoke(tokenId);
   }
 }

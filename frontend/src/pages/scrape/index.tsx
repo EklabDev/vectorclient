@@ -11,7 +11,6 @@ interface ScrapeSource {
   maxPages: number;
   isActive: boolean;
   status: string;
-  weaviateCollectionId: string | null;
   lastCrawledAt: string | null;
   lastError: string | null;
   createdAt: string;
@@ -115,7 +114,7 @@ export function ScrapeSourcesPage() {
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 'bold', margin: 0, color: '#fff' }}>Scrape Sources</h1>
           <p style={{ color: '#a1a1aa', margin: '8px 0 0' }}>
-            Crawl client websites into Weaviate + Neo4j for the native agent.
+            Crawl client websites into ArcadeDB (vectors + graph) for the native agent.
           </p>
         </div>
         <button
@@ -266,7 +265,7 @@ export function ScrapeSourcesPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #3f3f46' }}>
-                {['Name', 'Seed URL', 'Status', 'Last crawl', 'Collection', 'Actions'].map((h) => (
+                {['Name', 'Seed URL', 'Status', 'Last crawl', 'Source ID', 'Actions'].map((h) => (
                   <th key={h} style={{ padding: 12, textAlign: 'left', color: '#fff' }}>
                     {h}
                   </th>
@@ -283,7 +282,7 @@ export function ScrapeSourcesPage() {
                     {s.lastCrawledAt ? new Date(s.lastCrawledAt).toLocaleString() : '—'}
                   </td>
                   <td style={{ padding: 12, color: '#a1a1aa', fontFamily: 'monospace', fontSize: 12 }}>
-                    {s.weaviateCollectionId || '—'}
+                    {s.id}
                   </td>
                   <td style={{ padding: 12 }}>
                     <button

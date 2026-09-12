@@ -1,7 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { db } from '../config/database';
-import { endpoints } from '../database/schema';
-import { eq } from 'drizzle-orm';
+import { Endpoints } from '../store/endpoints';
 import { RedisService } from '../services/redisService';
 
 interface RateLimitBucket {
@@ -11,43 +9,28 @@ interface RateLimitBucket {
 
 const buckets = new Map<string, RateLimitBucket>();
 
-/**
- * Rate limit by endpoint config. Uses Redis when REDIS_URL is set;
- * falls back to in-memory token bucket for local/dev without Redis.
- */
 export async function rateLimitMiddleware(request: FastifyRequest, reply: FastifyReply) {
   try {
     const params = request.params as { endpoint_id?: string; user_id?: string } | undefined;
     let endpoint =
       params?.endpoint_id && params?.user_id
-        ? (
-            await db
-              .select()
-              .from(endpoints)
-              .where(eq(endpoints.id, params.endpoint_id))
-              .limit(1)
-          )[0]
-        : undefined;
+        ? await Endpoints.findById(params.endpoint_id)
+        : null;
 
     if (!endpoint) {
       const route = request.url.split('?')[0];
-      const [byRoute] = await db.select().from(endpoints).where(eq(endpoints.route, route)).limit(1);
-      endpoint = byRoute;
+      endpoint = await Endpoints.findByRouteOnly(route);
     }
-
     if (!endpoint) return;
 
     const bucketKey = `${request.ip}-${endpoint.id}`;
-
     if (RedisService.isEnabled()) {
       const allowed = await RedisService.consumeRateLimit(
         bucketKey,
         endpoint.rateLimit,
         endpoint.rateLimitWindowMs
       );
-      if (!allowed) {
-        reply.code(429).send({ error: 'Rate limit exceeded' });
-      }
+      if (!allowed) reply.code(429).send({ error: 'Rate limit exceeded' });
       return;
     }
 
@@ -61,12 +44,10 @@ export async function rateLimitMiddleware(request: FastifyRequest, reply: Fastif
       bucket.tokens = Math.min(endpoint.rateLimit, bucket.tokens + tokensToAdd);
       bucket.lastRefill = now;
     }
-
     if (bucket.tokens < 1) {
       reply.code(429).send({ error: 'Rate limit exceeded' });
       return;
     }
-
     bucket.tokens -= 1;
     buckets.set(bucketKey, bucket);
   } catch (error) {

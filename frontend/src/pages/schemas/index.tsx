@@ -10,7 +10,6 @@ interface Schema {
   systemPrompt: string | null;
   version: number;
   isPublished: boolean;
-  weaviateCollectionId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +47,7 @@ export function SchemasPage() {
       if (Array.isArray(data)) {
         setSchemas(data);
         const publishedIds = data
-          .filter((s) => s.isPublished && s.weaviateCollectionId)
+          .filter((s) => s.isPublished)
           .map((s) => s.id);
         if (publishedIds.length > 0) {
           try {
@@ -257,9 +256,9 @@ export function SchemasPage() {
                 <div style={{ marginBottom: '4px' }}>
                   <strong>Schema ID:</strong> <span style={{ fontFamily: 'monospace' }}>{editingSchema.id}</span>
                 </div>
-                {editingSchema.weaviateCollectionId && (
+                {editingSchema.isPublished && (
                   <div>
-                    <strong>Weaviate Collection ID:</strong> <span style={{ fontFamily: 'monospace' }}>{editingSchema.weaviateCollectionId}</span>
+                    <strong>Knowledge store:</strong> ArcadeDB Chunk vertices
                   </div>
                 )}
                 <div style={{ marginTop: '4px' }}>
@@ -519,16 +518,11 @@ export function SchemasPage() {
                 )}</div>
                 <div style={{ marginTop: '4px', wordBreak: 'break-all' }}>
                   <div>Schema ID: <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{schema.id}</span></div>
-                  {schema.weaviateCollectionId && (
-                    <div style={{ marginTop: '2px' }}>
-                      Weaviate ID: <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{schema.weaviateCollectionId}</span>
-                    </div>
-                  )}
                 </div>
                 <div style={{ marginTop: '4px' }}>Updated: {formatDate(schema.updatedAt)}</div>
-                {schema.isPublished && schema.weaviateCollectionId && (
+                {schema.isPublished && (
                   <div style={{ marginTop: '6px', color: '#93c5fd' }}>
-                    Weaviate objects: {weaviateCounts[schema.id] ?? '—'}
+                    Knowledge objects: {weaviateCounts[schema.id] ?? '—'}
                   </div>
                 )}
               </div>
@@ -619,7 +613,7 @@ export function SchemasPage() {
                       Edit KB
                     </button>
                   </div>
-                  {schema.isPublished && schema.weaviateCollectionId && (
+                  {schema.isPublished && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button
                         type="button"

@@ -98,7 +98,7 @@ export function WeaviateExplorerModal({
   const saveSystemPrompt = async () => {
     if (
       !window.confirm(
-        'Update system prompt for this schema? (This does not re-publish chunk content to Weaviate.)'
+        'Update system prompt for this schema? (This does not re-publish chunk content.)'
       )
     ) {
       return;
@@ -120,7 +120,7 @@ export function WeaviateExplorerModal({
       setError('Content cannot be empty.');
       return;
     }
-    if (!window.confirm('Save changes to this chunk in Weaviate?')) return;
+    if (!window.confirm('Save changes to this chunk?')) return;
     try {
       setError('');
       await ApiClient.patchWeaviateChunk(schemaId, selected.id, {
@@ -140,7 +140,7 @@ export function WeaviateExplorerModal({
 
   const createChunk = async () => {
     if (!newContent.trim()) return;
-    if (!window.confirm('Create a new chunk object in Weaviate?')) return;
+    if (!window.confirm('Create a new chunk object?')) return;
     try {
       setError('');
       await ApiClient.createWeaviateObject(schemaId, {
@@ -161,7 +161,7 @@ export function WeaviateExplorerModal({
   };
 
   const deleteChunk = async (obj: WeaviateChunkObject) => {
-    if (!window.confirm(`Delete chunk ${obj.id.slice(0, 8)}… from Weaviate? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete chunk ${obj.id.slice(0, 8)}…? This cannot be undone.`)) return;
     try {
       setError('');
       await ApiClient.deleteWeaviateObject(schemaId, obj.id);
@@ -211,7 +211,7 @@ export function WeaviateExplorerModal({
             {isEdit ? 'Edit vectors' : 'View vectors'} — {schemaName}
           </h2>
           <p style={{ margin: '8px 0 0', fontSize: 12, color: '#a1a1aa' }}>
-            Weaviate chunks for schema <code style={{ color: '#93c5fd' }}>{schemaId}</code>
+            ArcadeDB chunks for schema <code style={{ color: '#93c5fd' }}>{schemaId}</code>
           </p>
         </div>
 
@@ -445,7 +445,7 @@ export function WeaviateExplorerModal({
           )}
           {truncated && !showSearchResults && (
             <p style={{ fontSize: 12, color: '#fbbf24', marginBottom: 8 }}>
-              List truncated: more than 500 objects exist. Use search or Weaviate console for full data.
+              List truncated: more than 500 objects exist. Use search or the Query console for full data.
             </p>
           )}
 

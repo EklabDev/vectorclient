@@ -1,28 +1,16 @@
-import { db } from '../../config/database';
-import { scrapeJobs, scrapeSources } from '../../database/schema';
-import { eq } from 'drizzle-orm';
+import { Scrape } from '../../store/scrape';
 import { CrawlerService } from './crawlerService';
-import { ScrapeWeaviateService } from './scrapeWeaviateService';
-import { GraphExtractService } from '../graphExtractService';
+import { ArcadeKnowledgeService } from '../arcadeKnowledgeService';
 
 export async function runScrapeJob(sourceId: string, jobId: string): Promise<void> {
-  const [source] = await db.select().from(scrapeSources).where(eq(scrapeSources.id, sourceId)).limit(1);
+  const source = await Scrape.findById(sourceId);
   if (!source) throw new Error('Scrape source not found');
 
-  await db
-    .update(scrapeJobs)
-    .set({ status: 'running', updatedAt: new Date() })
-    .where(eq(scrapeJobs.id, jobId));
-  await db
-    .update(scrapeSources)
-    .set({ status: 'running', lastError: null, updatedAt: new Date() })
-    .where(eq(scrapeSources.id, sourceId));
+  await Scrape.updateJob(jobId, { status: 'running' });
+  await Scrape.update(sourceId, { status: 'running', lastError: null });
 
   try {
-    const domains = Array.isArray(source.allowedDomains)
-      ? (source.allowedDomains as string[])
-      : [];
-
+    const domains = Array.isArray(source.allowedDomains) ? source.allowedDomains : [];
     const pages = await CrawlerService.crawl({
       userId: source.userId,
       seedUrl: source.seedUrl,
@@ -31,48 +19,22 @@ export async function runScrapeJob(sourceId: string, jobId: string): Promise<voi
       maxPages: source.maxPages,
     });
 
-    const { className } = await ScrapeWeaviateService.replaceSourceChunks(
-      source.id,
-      source.name,
-      pages
-    );
+    await ArcadeKnowledgeService.replaceSourceChunks(source.userId, source.id, source.name, pages);
 
-    await GraphExtractService.extractAndUpsert(
-      source.userId,
-      pages.map((p) => ({ content: p.text.slice(0, 4000) })),
-      { sourceId: source.id, sourceUrl: source.seedUrl }
-    );
-
-    await db
-      .update(scrapeJobs)
-      .set({
-        status: 'completed',
-        pagesCrawled: pages.length,
-        updatedAt: new Date(),
-        completedAt: new Date(),
-      })
-      .where(eq(scrapeJobs.id, jobId));
-
-    await db
-      .update(scrapeSources)
-      .set({
-        status: 'completed',
-        weaviateCollectionId: className,
-        lastCrawledAt: new Date(),
-        updatedAt: new Date(),
-        lastError: null,
-      })
-      .where(eq(scrapeSources.id, sourceId));
+    await Scrape.updateJob(jobId, {
+      status: 'completed',
+      pagesCrawled: pages.length,
+      completedAt: new Date().toISOString(),
+    });
+    await Scrape.update(sourceId, {
+      status: 'completed',
+      lastCrawledAt: new Date().toISOString(),
+      lastError: null,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Crawl failed';
-    await db
-      .update(scrapeJobs)
-      .set({ status: 'failed', error: message, updatedAt: new Date() })
-      .where(eq(scrapeJobs.id, jobId));
-    await db
-      .update(scrapeSources)
-      .set({ status: 'failed', lastError: message, updatedAt: new Date() })
-      .where(eq(scrapeSources.id, sourceId));
+    await Scrape.updateJob(jobId, { status: 'failed', error: message });
+    await Scrape.update(sourceId, { status: 'failed', lastError: message });
     throw err;
   }
 }

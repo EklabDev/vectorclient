@@ -1,18 +1,14 @@
 import { FastifyRequest } from 'fastify';
-import { db } from '../config/database';
-import { endpoints, callLogs, endpointApiTokens, apiTokens } from '../database/schema';
-import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { EncryptionService } from './encryption';
+import { Endpoints } from '../store/endpoints';
+import { Tokens } from '../store/tokens';
+import { Logs } from '../store/logs';
+import type { EndpointDoc } from '../store/types';
 
-export type EndpointRow = typeof endpoints.$inferSelect;
+export type EndpointRow = EndpointDoc;
 
-export type AuthSuccess = {
-  ok: true;
-  endpoint: EndpointRow;
-  apiTokenId: string | null;
-};
-
+export type AuthSuccess = { ok: true; endpoint: EndpointRow; apiTokenId: string | null };
 export type AuthFailure = {
   ok: false;
   statusCode: number;
@@ -20,7 +16,6 @@ export type AuthFailure = {
   endpoint: EndpointRow | null;
   apiTokenId: string | null;
 };
-
 export type AuthResult = AuthSuccess | AuthFailure;
 
 function truncateBody(body: unknown): string | null {
@@ -43,8 +38,7 @@ export async function logEndpointCall(params: {
   errorMessage: string | null;
 }): Promise<void> {
   try {
-    await db.insert(callLogs).values({
-      id: uuidv4(),
+    await Logs.insert({
       endpointId: params.endpointId,
       apiTokenId: params.apiTokenId,
       method: params.method,
@@ -58,79 +52,31 @@ export async function logEndpointCall(params: {
       errorMessage: params.errorMessage,
     });
   } catch (logError) {
-    console.error('Failed to log call to call_logs:', logError);
+    console.error('Failed to log call:', logError);
   }
 }
 
-/**
- * Validate endpoint ownership + optional API token association.
- * Mirrors the auth rules used by the n8n proxy in dynamic.ts.
- */
 export async function authenticateEndpointRequest(
   request: FastifyRequest,
   endpointId: string,
   userId: string
 ): Promise<AuthResult> {
-  const [endpoint] = await db
-    .select()
-    .from(endpoints)
-    .where(
-      and(eq(endpoints.id, endpointId), eq(endpoints.userId, userId), eq(endpoints.isActive, true))
-    )
-    .limit(1);
-
+  const endpoint = await Endpoints.findActive(endpointId, userId);
   if (!endpoint) {
-    return {
-      ok: false,
-      statusCode: 404,
-      message: 'Endpoint not found or inactive',
-      endpoint: null,
-      apiTokenId: null,
-    };
+    return { ok: false, statusCode: 404, message: 'Endpoint not found or inactive', endpoint: null, apiTokenId: null };
   }
 
   const apiKey = request.headers['x-api-key'] as string | undefined;
-
   if (apiKey) {
-    const hashedToken = EncryptionService.hash(apiKey);
-    const [token] = await db
-      .select()
-      .from(apiTokens)
-      .where(and(eq(apiTokens.tokenValue, hashedToken), eq(apiTokens.isActive, true)))
-      .limit(1);
-
+    const token = await Tokens.findByHash(EncryptionService.hash(apiKey));
     if (!token) {
-      return {
-        ok: false,
-        statusCode: 403,
-        message: 'Invalid API token',
-        endpoint,
-        apiTokenId: null,
-      };
+      return { ok: false, statusCode: 403, message: 'Invalid API token', endpoint, apiTokenId: null };
     }
-
     if (token.expiresAt && new Date(token.expiresAt) < new Date()) {
-      return {
-        ok: false,
-        statusCode: 403,
-        message: 'API token has expired',
-        endpoint,
-        apiTokenId: token.id,
-      };
+      return { ok: false, statusCode: 403, message: 'API token has expired', endpoint, apiTokenId: token.id };
     }
-
-    const [association] = await db
-      .select()
-      .from(endpointApiTokens)
-      .where(
-        and(
-          eq(endpointApiTokens.endpointId, endpointId),
-          eq(endpointApiTokens.apiTokenId, token.id)
-        )
-      )
-      .limit(1);
-
-    if (!association) {
+    const linked = await Endpoints.hasTokenLink(endpointId, token.id);
+    if (!linked) {
       return {
         ok: false,
         statusCode: 403,
@@ -139,28 +85,14 @@ export async function authenticateEndpointRequest(
         apiTokenId: token.id,
       };
     }
-
-    await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, token.id));
-
+    await Tokens.touchLastUsed(token.id);
     return { ok: true, endpoint, apiTokenId: token.id };
   }
 
-  const associatedTokens = await db
-    .select()
-    .from(endpointApiTokens)
-    .where(eq(endpointApiTokens.endpointId, endpointId))
-    .limit(1);
-
-  if (associatedTokens.length > 0) {
-    return {
-      ok: false,
-      statusCode: 403,
-      message: 'API token required',
-      endpoint,
-      apiTokenId: null,
-    };
+  const links = await Endpoints.tokenLinks(endpointId);
+  if (links.length > 0) {
+    return { ok: false, statusCode: 403, message: 'API token required', endpoint, apiTokenId: null };
   }
-
   return { ok: true, endpoint, apiTokenId: null };
 }
 
@@ -177,3 +109,5 @@ export function requestMeta(request: FastifyRequest): {
     path: request.url.split('?')[0],
   };
 }
+
+void uuidv4;

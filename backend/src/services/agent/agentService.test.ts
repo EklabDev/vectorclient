@@ -12,7 +12,7 @@ vi.mock('openai', () => ({
   },
 }));
 
-vi.mock('./tools/weaviateTool', () => ({
+vi.mock('./tools/knowledgeTool', () => ({
   searchKnowledgeTool: {
     name: 'search_knowledge',
     description: 'search',

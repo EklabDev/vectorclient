@@ -1,1 +1,0 @@
-ALTER TABLE "schemas" ADD COLUMN "system_prompt" text;

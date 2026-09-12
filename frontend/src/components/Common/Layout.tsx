@@ -1,118 +1,85 @@
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 
+const NAV = [
+  { to: '/query', label: 'Query', icon: '⌘' },
+  { to: '/database', label: 'Database', icon: '◈' },
+  { to: '/dashboard', label: 'Dashboard', icon: '▣' },
+  { to: '/endpoints', label: 'Endpoints', icon: '↗' },
+  { to: '/schemas', label: 'Knowledge', icon: '☰' },
+  { to: '/scrape', label: 'Scrape', icon: '◎' },
+  { to: '/tokens', label: 'Tokens', icon: '⚿' },
+];
+
 export function Layout() {
   const { logout, username } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const isActive = (path: string) => location.pathname === path;
-
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#18181b' }}>
-      {/* Sidebar */}
-      <aside style={{ width: '250px', backgroundColor: '#27272a', padding: '20px', borderRight: '1px solid #3f3f46' }}>
-        <div style={{ marginBottom: '40px' }}>
-          <h2 style={{ margin: 0, color: '#fff' }}>API Gateway</h2>
-          <p style={{ margin: 0, fontSize: '14px', color: '#a1a1aa' }}>Workspace</p>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#1a1c22', color: '#e8eaed' }}>
+      <aside
+        style={{
+          width: 220,
+          backgroundColor: '#12141a',
+          borderRight: '1px solid #2a2e38',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '16px 12px',
+        }}
+      >
+        <div style={{ marginBottom: 28, padding: '0 8px' }}>
+          <div style={{ fontSize: 13, letterSpacing: 1.4, color: '#8b93a7' }}>ARCADE STUDIO</div>
+          <h2 style={{ margin: '4px 0 0', fontSize: 18, color: '#fff' }}>VectorClient</h2>
         </div>
-        
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <Link 
-            to="/dashboard" 
-            style={{ 
-              textDecoration: 'none', 
-              color: isActive('/dashboard') ? '#fff' : '#a1a1aa',
-              fontWeight: isActive('/dashboard') ? 'bold' : 'normal',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              backgroundColor: isActive('/dashboard') ? '#3f3f46' : 'transparent'
-            }}
-          >
-            Dashboard
-          </Link>
-          <Link 
-            to="/endpoints" 
-            style={{ 
-              textDecoration: 'none', 
-              color: isActive('/endpoints') ? '#fff' : '#a1a1aa',
-              fontWeight: isActive('/endpoints') ? 'bold' : 'normal',
-               padding: '8px 12px',
-              borderRadius: '6px',
-              backgroundColor: isActive('/endpoints') ? '#3f3f46' : 'transparent'
-            }}
-          >
-            Endpoints
-          </Link>
-          <Link 
-            to="/schemas" 
-            style={{ 
-              textDecoration: 'none', 
-              color: isActive('/schemas') ? '#fff' : '#a1a1aa',
-              fontWeight: isActive('/schemas') ? 'bold' : 'normal',
-               padding: '8px 12px',
-              borderRadius: '6px',
-              backgroundColor: isActive('/schemas') ? '#3f3f46' : 'transparent'
-            }}
-          >
-            Schemas (Knowledge)
-          </Link>
-          <Link 
-            to="/scrape" 
-            style={{ 
-              textDecoration: 'none', 
-              color: isActive('/scrape') ? '#fff' : '#a1a1aa',
-              fontWeight: isActive('/scrape') ? 'bold' : 'normal',
-               padding: '8px 12px',
-              borderRadius: '6px',
-              backgroundColor: isActive('/scrape') ? '#3f3f46' : 'transparent'
-            }}
-          >
-            Scrape Sources
-          </Link>
-           <Link 
-            to="/tokens" 
-            style={{ 
-              textDecoration: 'none', 
-              color: isActive('/tokens') ? '#fff' : '#a1a1aa',
-              fontWeight: isActive('/tokens') ? 'bold' : 'normal',
-               padding: '8px 12px',
-              borderRadius: '6px',
-              backgroundColor: isActive('/tokens') ? '#3f3f46' : 'transparent'
-            }}
-          >
-            API Tokens
-          </Link>
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+          {NAV.map((item) => {
+            const active = location.pathname === item.to;
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                style={{
+                  textDecoration: 'none',
+                  color: active ? '#fff' : '#9aa3b5',
+                  backgroundColor: active ? '#2a3142' : 'transparent',
+                  padding: '8px 10px',
+                  borderRadius: 6,
+                  display: 'flex',
+                  gap: 10,
+                  fontSize: 14,
+                }}
+              >
+                <span style={{ width: 18, textAlign: 'center', opacity: 0.8 }}>{item.icon}</span>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
-
-        <div style={{ marginTop: 'auto', paddingTop: '20px', borderTop: '1px solid #3f3f46' }}>
-           <div style={{ marginBottom: '10px', fontSize: '14px', color: '#a1a1aa' }}>
-             User: <strong style={{ color: '#fff' }}>{username}</strong>
-           </div>
-           <button 
-             onClick={handleLogout}
-             style={{ 
-               width: '100%', 
-               padding: '8px', 
-               cursor: 'pointer', 
-               backgroundColor: '#3f3f46', 
-               border: '1px solid #52525b',
-               borderRadius: '6px',
-               color: '#fff'
-             }}
-           >
-             Logout
-           </button>
+        <div style={{ borderTop: '1px solid #2a2e38', paddingTop: 12, fontSize: 13, color: '#9aa3b5' }}>
+          <div style={{ marginBottom: 8 }}>
+            {username}
+          </div>
+          <button
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            style={{
+              width: '100%',
+              padding: 8,
+              cursor: 'pointer',
+              backgroundColor: '#2a2e38',
+              border: '1px solid #3a4150',
+              borderRadius: 6,
+              color: '#fff',
+            }}
+          >
+            Logout
+          </button>
         </div>
       </aside>
-
-      {/* Main Content */}
-      <main style={{ flex: 1, padding: '40px', overflowY: 'auto', backgroundColor: '#18181b', color: '#fff' }}>
+      <main style={{ flex: 1, padding: 28, overflowY: 'auto' }}>
         <Outlet />
       </main>
     </div>

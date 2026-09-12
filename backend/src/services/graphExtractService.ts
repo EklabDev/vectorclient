@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { Neo4jService, GraphEntityType, GraphRelType } from './neo4jService';
+import { ArcadeGraphService, GraphEntityType, GraphRelType } from './arcadeGraphService';
 
 const EXTRACT_PROMPT = `Extract entities and relationships from knowledge chunks for a client knowledge graph.
 Return ONLY JSON:
@@ -12,7 +12,7 @@ Rules:
 - Prefer Program, Location, Schedule, Contact, Organization types.
 - Keep props small (strings only).`;
 
-type Extracted = {
+export type ExtractedGraph = {
   entities: Array<{ type: GraphEntityType; name: string; props?: Record<string, unknown> }>;
   relationships: Array<{
     fromType: GraphEntityType;
@@ -32,22 +32,15 @@ const ALLOWED_TYPES = new Set([
   'WebPage',
   'ChunkRef',
 ]);
-const ALLOWED_RELS = new Set([
-  'OFFERS',
-  'LOCATED_AT',
-  'HAS_SCHEDULE',
-  'HAS_CONTACT',
-  'MENTIONS',
-]);
+const ALLOWED_RELS = new Set(['OFFERS', 'LOCATED_AT', 'HAS_SCHEDULE', 'HAS_CONTACT', 'MENTIONS']);
 
 export class GraphExtractService {
-  static async extractAndUpsert(
-    userId: string,
+  static async extractFromChunks(
     chunks: Array<{ content: string; id?: string }>,
     sourceMeta: { sourceId?: string; sourceUrl?: string } = {}
-  ): Promise<{ entities: number; relationships: number }> {
-    if (!Neo4jService.isEnabled() || chunks.length === 0) {
-      return { entities: 0, relationships: 0 };
+  ): Promise<ExtractedGraph> {
+    if (!process.env.OPENAI_API_KEY || chunks.length === 0) {
+      return { entities: [], relationships: [] };
     }
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -61,31 +54,37 @@ export class GraphExtractService {
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: EXTRACT_PROMPT },
-        {
-          role: 'user',
-          content: `Source meta: ${JSON.stringify(sourceMeta)}\n\nChunks:\n${sample}`,
-        },
+        { role: 'user', content: `Source meta: ${JSON.stringify(sourceMeta)}\n\nChunks:\n${sample}` },
       ],
     });
 
     const raw = response.choices[0]?.message?.content || '{}';
-    let parsed: Extracted;
     try {
-      parsed = JSON.parse(raw) as Extracted;
+      const parsed = JSON.parse(raw) as ExtractedGraph;
+      return {
+        entities: Array.isArray(parsed.entities) ? parsed.entities : [],
+        relationships: Array.isArray(parsed.relationships) ? parsed.relationships : [],
+      };
     } catch {
-      return { entities: 0, relationships: 0 };
+      return { entities: [], relationships: [] };
     }
+  }
 
+  static async upsertExtracted(
+    userId: string,
+    extracted: ExtractedGraph,
+    sourceMeta: { sourceId?: string; sourceUrl?: string } = {}
+  ): Promise<{ entities: number; relationships: number }> {
     let entityCount = 0;
-    for (const e of parsed.entities || []) {
+    for (const e of extracted.entities || []) {
       if (!ALLOWED_TYPES.has(e.type) || !e.name?.trim()) continue;
       const props = { ...(e.props || {}), ...(sourceMeta.sourceId ? { sourceId: sourceMeta.sourceId } : {}) };
-      await Neo4jService.upsertEntity(userId, e.type, e.name, props);
+      await ArcadeGraphService.upsertEntity(userId, e.type, e.name, props);
       entityCount += 1;
     }
 
     let relCount = 0;
-    for (const r of parsed.relationships || []) {
+    for (const r of extracted.relationships || []) {
       if (
         !ALLOWED_TYPES.has(r.fromType) ||
         !ALLOWED_TYPES.has(r.toType) ||
@@ -95,10 +94,9 @@ export class GraphExtractService {
       ) {
         continue;
       }
-      // Ensure endpoints exist
-      await Neo4jService.upsertEntity(userId, r.fromType, r.fromName, {});
-      await Neo4jService.upsertEntity(userId, r.toType, r.toName, {});
-      await Neo4jService.upsertRel(
+      await ArcadeGraphService.upsertEntity(userId, r.fromType, r.fromName, {});
+      await ArcadeGraphService.upsertEntity(userId, r.toType, r.toName, {});
+      await ArcadeGraphService.upsertRel(
         userId,
         r.fromType,
         r.fromName,
@@ -110,5 +108,14 @@ export class GraphExtractService {
     }
 
     return { entities: entityCount, relationships: relCount };
+  }
+
+  static async extractAndUpsert(
+    userId: string,
+    chunks: Array<{ content: string; id?: string }>,
+    sourceMeta: { sourceId?: string; sourceUrl?: string } = {}
+  ): Promise<{ entities: number; relationships: number }> {
+    const extracted = await this.extractFromChunks(chunks, sourceMeta);
+    return this.upsertExtracted(userId, extracted, sourceMeta);
   }
 }
