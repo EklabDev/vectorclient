@@ -18,38 +18,13 @@ function getClient(): Redis | null {
     return null;
   }
   try {
-    let hostname: string | null = null;
-    let port: string | null = null;
-    let hasUsername = false;
-    let hasPassword = false;
-    try {
-      const parsed = new URL(url);
-      hostname = parsed.hostname || null;
-      port = parsed.port || (parsed.protocol === 'rediss:' ? '6380' : '6379');
-      hasUsername = Boolean(parsed.username);
-      hasPassword = Boolean(parsed.password);
-    } catch {
-      /* invalid URL; ioredis will throw below */
-    }
-    // #region agent log
-    fetch('http://127.0.0.1:7552/ingest/c9c6c1fe-9ccc-4c38-a315-a08ca8072384',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cd3b7c'},body:JSON.stringify({sessionId:'cd3b7c',runId:'pre-fix',hypothesisId:'H1-H2-H4',location:'redisService.ts:getClient',message:'creating ioredis client',data:{hostname,port,hasUsername,hasPassword,hasRedisPasswordEnv:Boolean(process.env.REDIS_PASSWORD),urlProtocol:url.split(':')[0]},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     client = new Redis(url, {
       maxRetriesPerRequest: null,
       enableReadyCheck: true,
       lazyConnect: false,
     });
     client.on('error', (err) => {
-      const rec = err as Error & { command?: { name?: string; args?: string[] } };
-      // #region agent log
-      fetch('http://127.0.0.1:7552/ingest/c9c6c1fe-9ccc-4c38-a315-a08ca8072384',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cd3b7c'},body:JSON.stringify({sessionId:'cd3b7c',runId:'pre-fix',hypothesisId:'H1-H3-H5',location:'redisService.ts:error',message:'redis client error',data:{errName:err.name,errMessage:err.message.slice(0,180),commandName:rec.command?.name??null,commandArgCount:rec.command?.args?.length??null,firstArg:rec.command?.args?.[0]??null},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       console.error('Redis error:', err.message);
-    });
-    client.on('ready', () => {
-      // #region agent log
-      fetch('http://127.0.0.1:7552/ingest/c9c6c1fe-9ccc-4c38-a315-a08ca8072384',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cd3b7c'},body:JSON.stringify({sessionId:'cd3b7c',runId:'post-fix',hypothesisId:'H4',location:'redisService.ts:ready',message:'redis client ready',data:{hostname,port,hasPassword},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
     });
     return client;
   } catch (err) {
