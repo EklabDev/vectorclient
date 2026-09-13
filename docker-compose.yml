@@ -25,7 +25,8 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      # Host 6379 is often taken by other local Redis containers; publish 6380 for host Node.
+      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
