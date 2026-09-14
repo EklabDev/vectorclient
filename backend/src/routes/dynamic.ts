@@ -62,7 +62,9 @@ export async function dynamicRoutes(app: FastifyInstance) {
 
       const targetUrl = auth.endpoint.route;
       if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-        const message = 'Route must be a full URL (starting with http:// or https://)';
+        const message =
+          'Route must be a full URL (starting with http:// or https://). ' +
+          'POST /api/v1/agents/:endpoint_id/:user_id for the native agent.';
         reply.code(400).send({ message });
         await logEndpointCall({
           endpointId: auth.endpoint.id,

@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { ApiClient } from '../../services/api';
 import { Autocomplete } from '../../components/Common/Autocomplete';
 import { CrmPanel } from '../../components/CrmPanel';
+import {
+  DEFAULT_TOPIC_FILTER_FORM,
+  TopicFilterFields,
+  type TopicFilterForm,
+} from './TopicFilterFields';
 
 interface Token {
   id: string;
@@ -25,6 +30,7 @@ interface Endpoint {
   allowedOrigins: string[];
   description: string | null;
   isActive: boolean;
+  topicFilter?: TopicFilterForm;
   createdAt: string;
   updatedAt: string;
   apiTokens?: Token[];
@@ -55,12 +61,12 @@ export function EndpointsPage() {
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
   const [formData, setFormData] = useState({
     routeName: '',
-    route: '',
     rateLimit: 100,
     rateLimitWindowMs: 60000,
     allowedOrigins: '',
     description: '',
     isActive: true,
+    topicFilter: { ...DEFAULT_TOPIC_FILTER_FORM },
   });
   const [selectedTokens, setSelectedTokens] = useState<Array<{ id: string; label: string }>>([]);
   const [selectedSchemas, setSelectedSchemas] = useState<Array<{ id: string; label: string }>>([]);
@@ -146,12 +152,16 @@ export function EndpointsPage() {
 
       const payload = {
         routeName: formData.routeName,
-        route: formData.route,
         rateLimit: formData.rateLimit,
         rateLimitWindowMs: formData.rateLimitWindowMs,
         allowedOrigins: allowedOriginsArray,
         description: formData.description || null,
         isActive: formData.isActive,
+        topicFilter: {
+          enabled: formData.topicFilter.enabled,
+          minSimilarity: formData.topicFilter.minSimilarity,
+          offTopicReply: formData.topicFilter.offTopicReply.trim() || DEFAULT_TOPIC_FILTER_FORM.offTopicReply,
+        },
         apiTokenIds: selectedTokens.map((t) => t.id),
         schemaIds: selectedSchemas.map((s) => s.id),
       };
@@ -173,14 +183,19 @@ export function EndpointsPage() {
 
   const handleEdit = (endpoint: Endpoint) => {
     setEditingEndpoint(endpoint);
+    const tf = endpoint.topicFilter;
     setFormData({
       routeName: endpoint.routeName,
-      route: endpoint.route,
       rateLimit: endpoint.rateLimit,
       rateLimitWindowMs: endpoint.rateLimitWindowMs,
       allowedOrigins: endpoint.allowedOrigins.join(', '),
       description: endpoint.description || '',
       isActive: endpoint.isActive,
+      topicFilter: {
+        enabled: tf?.enabled ?? DEFAULT_TOPIC_FILTER_FORM.enabled,
+        minSimilarity: tf?.minSimilarity ?? DEFAULT_TOPIC_FILTER_FORM.minSimilarity,
+        offTopicReply: tf?.offTopicReply ?? DEFAULT_TOPIC_FILTER_FORM.offTopicReply,
+      },
     });
     setSelectedTokens(
       (endpoint.apiTokens || []).map((t) => ({
@@ -216,12 +231,12 @@ export function EndpointsPage() {
   const resetForm = () => {
     setFormData({
       routeName: '',
-      route: '',
       rateLimit: 100,
       rateLimitWindowMs: 60000,
       allowedOrigins: '',
       description: '',
       isActive: true,
+      topicFilter: { ...DEFAULT_TOPIC_FILTER_FORM },
     });
     setSelectedTokens([]);
     setSelectedSchemas([]);
@@ -348,28 +363,6 @@ export function EndpointsPage() {
                 />
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
-                  Route Path *
-                </label>
-                <input
-                  type="text"
-                  value={formData.route}
-                  onChange={(e) => setFormData({ ...formData, route: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
-                    borderRadius: '6px',
-                    color: '#fff',
-                    fontSize: '14px'
-                  }}
-                  placeholder="e.g., /webhook/payment"
-                />
-              </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
@@ -491,6 +484,11 @@ export function EndpointsPage() {
                 <label style={{ color: '#a1a1aa', cursor: 'pointer' }}>Active</label>
               </div>
 
+              <TopicFilterFields
+                value={formData.topicFilter}
+                onChange={(topicFilter) => setFormData({ ...formData, topicFilter })}
+              />
+
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
                   type="submit"
@@ -557,11 +555,11 @@ export function EndpointsPage() {
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Name</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>User ID</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Endpoint ID</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Route</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Native Agent URL</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Rate Limit</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Tokens</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Schemas</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Topic filter</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Status</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Created</th>
                 <th style={{ padding: '12px', textAlign: 'right', color: '#fff', fontWeight: '600' }}>Actions</th>
@@ -573,10 +571,9 @@ export function EndpointsPage() {
                   <td style={{ padding: '12px', color: '#fff' }}>{endpoint.routeName}</td>
                   <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace', fontSize: '12px' }}>{endpoint.userId}</td>
                   <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace', fontSize: '12px' }}>{endpoint.id}</td>
-                  <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace' }}>{endpoint.route}</td>
                   <td style={{ padding: '12px', color: '#93c5fd', fontFamily: 'monospace', fontSize: '11px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span title="POST this path with x-api-key (same auth as n8n proxy)">
+                      <span title="POST this path with x-api-key">
                         /api/v1/agents/{endpoint.id}/{endpoint.userId}
                       </span>
                       <button
@@ -644,6 +641,13 @@ export function EndpointsPage() {
                       </div>
                     ) : (
                       <span style={{ color: '#71717a' }}>None</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    {(endpoint.topicFilter?.enabled ?? true) ? (
+                      <span style={{ color: '#f59e0b' }}>On</span>
+                    ) : (
+                      <span style={{ color: '#71717a' }}>Off</span>
                     )}
                   </td>
                   <td style={{ padding: '12px' }}>

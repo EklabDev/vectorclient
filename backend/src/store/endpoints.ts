@@ -40,9 +40,10 @@ export const Endpoints = {
     const row = await findOne<EndpointDoc>('Endpoint', { route });
     return row ? normalizeEndpoint(row) : null;
   },
-  async create(input: Omit<EndpointDoc, 'id' | 'createdAt' | 'updatedAt' | 'topicFilterJson'> & {
+  async create(input: Omit<EndpointDoc, 'id' | 'createdAt' | 'updatedAt' | 'topicFilterJson' | 'route'> & {
     topicFilter?: TopicFilter;
     id?: string;
+    route?: string;
   }): Promise<EndpointDoc> {
     const now = new Date().toISOString();
     const id = input.id || uuidv4();
@@ -50,6 +51,7 @@ export const Endpoints = {
     const row = await insertDoc<EndpointDoc>('Endpoint', {
       ...rest,
       id,
+      route: (typeof input.route === 'string' && input.route.trim()) || `internal://${id}`,
       allowedOrigins: input.allowedOrigins || [],
       topicFilterJson: JSON.stringify(topicFilter || DEFAULT_TOPIC_FILTER),
       createdAt: now,

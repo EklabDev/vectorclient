@@ -47,6 +47,7 @@ app.register(scrapeSourceRoutes, { prefix: '/api/scrape-sources' });
 app.register(studioRoutes, { prefix: '/api/studio' });
 app.register(dynamicRoutes, { prefix: '/api/v1/endpoints' });
 app.register(agentRoutes, { prefix: '/api/v1/agents' });
+app.register(agentRoutes, { prefix: '/api/v1/agent' });
 
 const start = async () => {
   try {

@@ -17,7 +17,7 @@ const topicFilterSchema = z
 
 const createEndpointSchema = z.object({
   routeName: z.string().min(1),
-  route: z.string().min(1),
+  route: z.string().min(1).optional(),
   rateLimit: z.number().int().positive().optional().default(100),
   rateLimitWindowMs: z.number().int().positive().optional().default(60000),
   allowedOrigins: z.array(z.string()).optional().default([]),
@@ -83,10 +83,12 @@ export async function endpointRoutes(app: FastifyInstance) {
     try {
       const { userId } = request.user as { userId: string };
       const body = createEndpointSchema.parse(request.body);
-      const conflict = await Endpoints.findByRoute(userId, body.route);
-      if (conflict) {
-        reply.code(409).send({ message: 'Endpoint with this route already exists' });
-        return;
+      if (body.route) {
+        const conflict = await Endpoints.findByRoute(userId, body.route);
+        if (conflict) {
+          reply.code(409).send({ message: 'Endpoint with this route already exists' });
+          return;
+        }
       }
       if (body.apiTokenIds.length) {
         const toks = await Tokens.findByIds(userId, body.apiTokenIds);
