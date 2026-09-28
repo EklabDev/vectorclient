@@ -360,6 +360,12 @@ export class ApiClient {
       body: JSON.stringify(data),
     });
   }
+  static updateCrmWorkflow(endpointId: string, workflowId: string, data: Record<string, unknown>) {
+    return this.request(`/api/endpoints/${endpointId}/crm/workflows/${workflowId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
   static deleteCrmWorkflow(endpointId: string, workflowId: string) {
     return this.request(`/api/endpoints/${endpointId}/crm/workflows/${workflowId}`, { method: 'DELETE' });
   }

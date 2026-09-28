@@ -3,7 +3,7 @@ import { ApiClient } from '../services/api';
 
 type Webhook = { id: string; name: string; url: string; enabled: boolean };
 type Field = { name: string; type: 'string' | 'number' | 'email'; required: boolean; prompt: string };
-type Workflow = { id: string; name: string };
+type Workflow = { id: string; name: string; webhookId?: string | null };
 
 const DEFAULT_FIELDS: Field[] = [
   { name: 'name', type: 'string', required: true, prompt: 'What is your name?' },
@@ -34,8 +34,10 @@ export function CrmPanel({ endpointId, onClose }: { endpointId: string; onClose:
       ApiClient.getCrmWorkflows(endpointId) as Promise<Workflow[]>,
       ApiClient.getCrmSchema(endpointId),
     ]);
-    setWebhooks(Array.isArray(hooks) ? hooks : []);
+    const hookList = Array.isArray(hooks) ? hooks : [];
+    setWebhooks(hookList);
     setWorkflows(Array.isArray(wfs) ? wfs : []);
+    setWfForm((prev) => ({ ...prev, webhookId: prev.webhookId || hookList[0]?.id || '' }));
     const props = (schema?.jsonSchema?.properties || {}) as Record<string, { type?: string; format?: string }>;
     const required = new Set((schema?.jsonSchema?.required as string[]) || []);
     const loaded = Object.entries(props).map(([name, spec]) => ({
@@ -71,9 +73,14 @@ export function CrmPanel({ endpointId, onClose }: { endpointId: string; onClose:
             <span>
               <button
                 onClick={async () => {
-                  const sample = Object.fromEntries(fields.map((f) => [f.name, f.type === 'email' ? 'test@example.com' : 'sample']));
-                  const res = await ApiClient.testCrmWebhook(endpointId, w.id, sample) as { ok?: boolean; status?: number };
-                  setTestResult(`Test send → ${res.ok ? 'ok' : 'failed'} (${res.status ?? '?'})`);
+                  try {
+                    const sample = Object.fromEntries(fields.map((f) => [f.name, f.type === 'email' ? 'test@example.com' : 'sample']));
+                    const res = await ApiClient.testCrmWebhook(endpointId, w.id, sample) as { ok?: boolean; status?: number };
+                    setError('');
+                    setTestResult(`Test send → ${res.ok ? 'ok' : 'failed'} (${res.status ?? '?'})`);
+                  } catch (e) {
+                    setError((e as Error).message);
+                  }
                 }}
                 style={btnGhost}
               >
@@ -89,9 +96,20 @@ export function CrmPanel({ endpointId, onClose }: { endpointId: string; onClose:
         <button
           style={btn}
           onClick={async () => {
-            const headers = hookForm.headers ? JSON.parse(hookForm.headers) : {};
-            await ApiClient.createCrmWebhook(endpointId, { name: hookForm.name, url: hookForm.url, headers });
-            await reload();
+            const url = hookForm.url.trim();
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+              setError('Webhook URL must be a full address starting with http:// or https://');
+              return;
+            }
+            try {
+              const headers = hookForm.headers.trim() ? JSON.parse(hookForm.headers) : {};
+              await ApiClient.createCrmWebhook(endpointId, { name: hookForm.name.trim(), url, headers });
+              setError('');
+              setHookForm({ ...hookForm, url: '', headers: '' });
+              await reload();
+            } catch (e) {
+              setError((e as Error).message);
+            }
           }}
         >
           Add webhook
@@ -128,12 +146,25 @@ export function CrmPanel({ endpointId, onClose }: { endpointId: string; onClose:
         </button>
 
         <h3>Collection workflow</h3>
-        {workflows.map((w) => (
-          <div key={w.id} style={row}>
-            <span>{w.name}</span>
-            <button onClick={() => ApiClient.deleteCrmWorkflow(endpointId, w.id).then(reload)} style={btnGhost}>Delete</button>
-          </div>
-        ))}
+        {workflows.map((w) => {
+          const linked = webhooks.find((hook) => hook.id === w.webhookId);
+          return (
+            <div key={w.id} style={row}>
+              <span>{w.name} — {linked ? linked.url : 'no webhook linked, so nothing is posted'}</span>
+              <span>
+                {!linked && webhooks[0] && (
+                  <button
+                    style={btnGhost}
+                    onClick={() => ApiClient.updateCrmWorkflow(endpointId, w.id, { webhookId: wfForm.webhookId || webhooks[0].id }).then(reload).catch((e) => setError((e as Error).message))}
+                  >
+                    Link webhook
+                  </button>
+                )}
+                <button onClick={() => ApiClient.deleteCrmWorkflow(endpointId, w.id).then(reload)} style={btnGhost}>Delete</button>
+              </span>
+            </div>
+          );
+        })}
         <input placeholder="Workflow name" value={wfForm.name} onChange={(e) => setWfForm({ ...wfForm, name: e.target.value })} />
         <input placeholder="Trigger phrases" value={wfForm.phrases} onChange={(e) => setWfForm({ ...wfForm, phrases: e.target.value })} style={{ width: '100%', margin: '8px 0' }} />
         <select value={wfForm.webhookId} onChange={(e) => setWfForm({ ...wfForm, webhookId: e.target.value })}>

@@ -6,6 +6,7 @@ import {
   matchWorkflowTrigger,
   resetWorkflowMemory,
   runCollectionTurn,
+  loadWorkflowState,
 } from './crmWorkflow';
 import type { AgentWorkflowDoc, WorkflowStep } from '../../store/types';
 
@@ -52,6 +53,16 @@ describe('CRM slot filling', () => {
     const slots = extractSlots('Jane jane@test.com 555-123-4567', steps, {});
     expect(slots.email).toBe('jane@test.com');
     expect(slots.phone).toContain('555');
+  });
+
+  it('replaces a stored invalid email instead of keeping it', () => {
+    const slots = extractSlots('jane@test.com', steps, { name: 'Jane Doe', email: 'not-an-email' });
+    expect(slots.email).toBe('jane@test.com');
+  });
+
+  it('does not store a non-email as the email field', () => {
+    const slots = extractSlots('not-an-email', steps, { name: 'Jane Doe' });
+    expect(slots.email).toBeUndefined();
   });
 
   it('rejects invalid email against JSON Schema', () => {
@@ -185,5 +196,44 @@ describe('runCollectionTurn', () => {
       m.loadWorkflowState('u1', 'c-fail')
     );
     expect(retryState?.slots.email).toBe('jane@test.com');
+  });
+
+  it('continues after a valid email replaces one that failed validation', async () => {
+    enabledWorkflows.mockResolvedValue([workflow]);
+    findWorkflow.mockResolvedValue(workflow);
+    getPayloadSchema.mockResolvedValue({
+      jsonSchema: JSON.stringify({
+        required: ['name', 'email', 'phone'],
+        properties: { email: { format: 'email' } },
+      }),
+    });
+    findWebhook.mockResolvedValue({
+      id: 'hook-1',
+      enabled: true,
+      url: 'https://crm.example.com/lead',
+      method: 'POST',
+      headersJson: '{}',
+      timeoutMs: 5000,
+    });
+    const slots = { name: 'Jane', email: 'not-an-email', phone: '555-111-2222' };
+    const stuck = await runCollectionTurn({
+      userId: 'u1',
+      endpointId: 'ep-1',
+      conversationId: 'c-email',
+      message: 'nope',
+      state: { workflowId: 'wf-1', slots },
+    });
+    expect(stuck.reply).toMatch(/valid email/i);
+    const saved = await loadWorkflowState('u1', 'c-email');
+    expect(saved?.slots.email).toBeUndefined();
+
+    const next = await runCollectionTurn({
+      userId: 'u1',
+      endpointId: 'ep-1',
+      conversationId: 'c-email',
+      message: 'jane@test.com',
+      state: saved,
+    });
+    expect(next.completed).toBe(true);
   });
 });

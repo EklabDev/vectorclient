@@ -75,6 +75,15 @@ function escapeRe(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function isEmailField(field: string): boolean {
+  return field.toLowerCase().includes('email');
+}
+
+function isPhoneField(field: string): boolean {
+  const fieldName = field.toLowerCase();
+  return fieldName.includes('phone') || fieldName.includes('mobile');
+}
+
 export function extractSlots(
   message: string,
   steps: WorkflowStep[],
@@ -85,12 +94,17 @@ export function extractSlots(
   const email = message.match(EMAIL_RE)?.[0];
   const phone = message.match(PHONE_RE)?.[0];
   for (const step of steps) {
+    if (isEmailField(step.field)) {
+      if (email) next[step.field] = email;
+      continue;
+    }
+    if (isPhoneField(step.field)) {
+      if (phone) next[step.field] = phone.trim();
+      continue;
+    }
     if (next[step.field]) continue;
-    const field = step.field.toLowerCase();
-    if (field.includes('email') && email) next[step.field] = email;
-    else if ((field.includes('phone') || field.includes('mobile')) && phone) next[step.field] = phone.trim();
   }
-  const missing = steps.filter((s) => !next[s.field]);
+  const missing = steps.filter((step) => !next[step.field] && !isEmailField(step.field) && !isPhoneField(step.field));
   const leftover = message
     .replace(EMAIL_RE, '')
     .replace(PHONE_RE, '')
@@ -123,6 +137,19 @@ export function validateAgainstSchema(
     }
   }
   return { ok: true };
+}
+
+export function withoutInvalidSlots(
+  schema: Record<string, unknown>,
+  slots: Record<string, string>
+): Record<string, string> {
+  const properties = (schema.properties || {}) as Record<string, { format?: string }>;
+  const next = { ...slots };
+  for (const [key, spec] of Object.entries(properties)) {
+    const value = next[key];
+    if (value && spec.format === 'email' && !EMAIL_RE.test(value)) delete next[key];
+  }
+  return next;
 }
 
 export async function postCrmWebhook(
@@ -184,7 +211,10 @@ export async function runCollectionTurn(input: {
   const schema = schemaDoc ? parseJsonSchema(schemaDoc.jsonSchema) : { type: 'object', properties: {} };
   const valid = validateAgainstSchema(schema, slots);
   if (!valid.ok) {
-    await saveWorkflowState(input.userId, input.conversationId, { workflowId: workflow.id, slots });
+    await saveWorkflowState(input.userId, input.conversationId, {
+      workflowId: workflow.id,
+      slots: withoutInvalidSlots(schema, slots),
+    });
     return { handled: true, reply: valid.message };
   }
 
