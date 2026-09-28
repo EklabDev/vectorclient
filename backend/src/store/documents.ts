@@ -1,6 +1,6 @@
 import { GATEWAY_DB } from '../arcade/config';
 import { command, query } from '../arcade/client';
-import { buildSet, buildWhere, nowIso, Where } from '../arcade/sql';
+import { buildSet, buildWhere, nowIso, quoteIdent, Where } from '../arcade/sql';
 
 export async function insertDoc<T extends Record<string, unknown>>(
   type: string,
@@ -24,7 +24,7 @@ export async function findMany<T extends Record<string, unknown>>(
   const { sql, params } = buildWhere(where);
   let statement = `SELECT FROM ${type} WHERE ${sql}`;
   if (opts.orderBy) {
-    statement += ` ORDER BY ${opts.orderBy} ${opts.desc ? 'DESC' : 'ASC'}`;
+    statement += ` ORDER BY ${quoteIdent(opts.orderBy)} ${opts.desc ? 'DESC' : 'ASC'}`;
   }
   if (opts.limit != null) statement += ` LIMIT ${Math.max(0, Math.floor(opts.limit))}`;
   if (opts.offset != null) statement += ` SKIP ${Math.max(0, Math.floor(opts.offset))}`;
@@ -46,12 +46,12 @@ export async function updateById<T extends Record<string, unknown>>(
 ): Promise<T | null> {
   const { sql, params } = buildSet(fields);
   params.id = id;
-  await command(GATEWAY_DB, `UPDATE ${type} SET ${sql} WHERE id = :id`, params);
+  await command(GATEWAY_DB, `UPDATE ${type} SET ${sql} WHERE ${quoteIdent('id')} = :id`, params);
   return findOne<T>(type, { id });
 }
 
 export async function deleteById(type: string, id: string): Promise<void> {
-  await command(GATEWAY_DB, `DELETE FROM ${type} WHERE id = :id`, { id });
+  await command(GATEWAY_DB, `DELETE FROM ${type} WHERE ${quoteIdent('id')} = :id`, { id });
 }
 
 export async function deleteWhere(type: string, where: Where): Promise<void> {

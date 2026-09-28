@@ -27,7 +27,8 @@ function buildSystemPrompt(input: AgentRunInput): string {
 
   return [
     'You are a helpful assistant for a client knowledge base.',
-    'Use tools to look up facts. Do not invent prices, schedules, URLs, phone numbers, or program details.',
+    'Use tools to look up facts. Search every linked collection, including scraped websites, before answering.',
+    'A graph entity that only has a name is not an empty result. Read its related programs and search the knowledge base for the written description before saying you do not know.',
     'If tools return nothing relevant, say you do not know and suggest contacting support when contact info is available.',
     schemaPrompt ? `Client instructions:\n${schemaPrompt}` : '',
     collectionList

@@ -18,14 +18,21 @@ describe('graph tools', () => {
   });
 
   it('looks up entities scoped to userId', async () => {
-    getEntity.mockResolvedValue({ name: 'Robotics', type: 'Program' });
+    getEntity.mockResolvedValue({ name: 'EKLAB', type: 'Organization' });
+    findRelated.mockResolvedValue([
+      { type: 'Program', name: 'AI & automation', relationship: 'OFFERS' },
+    ]);
     const { graphGetEntityTool } = await import('./graphTool');
     const result = await graphGetEntityTool.execute(
-      { type: 'Program', name: 'Robotics' },
+      { type: 'Organization', name: 'eklab' },
       { userId: 'user-1', endpointId: 'ep', conversationId: 'c', collections: [] }
     );
-    expect(getEntity).toHaveBeenCalledWith('user-1', 'Program', 'Robotics');
-    expect(result).toEqual({ entity: { name: 'Robotics', type: 'Program' } });
+    expect(getEntity).toHaveBeenCalledWith('user-1', 'Organization', 'eklab');
+    expect(findRelated).toHaveBeenCalledWith('user-1', 'Organization', 'eklab');
+    expect(result).toEqual({
+      entity: { name: 'EKLAB', type: 'Organization' },
+      related: [{ type: 'Program', name: 'AI & automation', relationship: 'OFFERS' }],
+    });
   });
 
   it('rejects invalid entity types', async () => {

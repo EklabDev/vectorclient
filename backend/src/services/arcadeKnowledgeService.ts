@@ -22,6 +22,14 @@ function truncate(value: string | undefined | null, max = 50): string | undefine
   return t.length <= max ? t : t.slice(0, max);
 }
 
+function embeddingLiteral(values: number[]): string {
+  const parts = values.map((n) => {
+    if (!Number.isFinite(n)) throw new Error('Embedding contains a non-finite value');
+    return String(n);
+  });
+  return `[${parts.join(',')}]`;
+}
+
 export class ArcadeKnowledgeService {
   static async ensureDb(userId: string): Promise<string> {
     return bootstrapKnowledgeDb(userId);
@@ -53,7 +61,7 @@ export class ArcadeKnowledgeService {
         all.push({
           ...c,
           chunkIndex: all.length,
-          originalReference: c.originalReference || page.url,
+          originalReference: page.url,
         });
       }
     }
@@ -101,7 +109,7 @@ export class ArcadeKnowledgeService {
           `INSERT INTO Chunk SET id = :id, content = :content, originalReference = :originalReference,
            category = :category, subcategory = :subcategory, schemaId = :schemaId, sourceId = :sourceId,
            sourceType = :sourceType, chunkIndex = :chunkIndex, schemaName = :schemaName, version = :version,
-           embedding = :embedding`,
+           embedding = ${embeddingLiteral(embeddings[i])}`,
           {
             id: uuidv4(),
             content: chunk.content,
@@ -114,7 +122,6 @@ export class ArcadeKnowledgeService {
             chunkIndex: chunk.chunkIndex ?? i,
             schemaName: meta.schemaName,
             version: meta.version,
-            embedding: embeddings[i],
           }
         );
       }
@@ -129,6 +136,24 @@ export class ArcadeKnowledgeService {
 
   static async deleteSourceChunks(userId: string, sourceId: string): Promise<void> {
     await command(db(userId), 'DELETE FROM Chunk WHERE sourceId = :sourceId', { sourceId });
+  }
+
+  static async listSourceChunks(userId: string, sourceId: string): Promise<{ objects: KnowledgeChunk[]; truncated: boolean }> {
+    try {
+      const rows = await query<KnowledgeChunk>(
+        db(userId),
+        'SELECT id, content, originalReference, sourceId, schemaName, chunkIndex, category, subcategory FROM Chunk WHERE sourceId = :sourceId ORDER BY chunkIndex ASC LIMIT :lim',
+        { sourceId, lim: KNOWLEDGE_LIST_MAX + 1 }
+      );
+      const truncated = rows.length > KNOWLEDGE_LIST_MAX;
+      return { objects: rows.slice(0, KNOWLEDGE_LIST_MAX), truncated };
+    } catch (err) {
+      const message = err instanceof Error ? err.message.toLowerCase() : '';
+      if (message.includes('database') || message.includes('not found')) {
+        return { objects: [], truncated: false };
+      }
+      throw err;
+    }
   }
 
   static async listChunks(userId: string, schemaId: string): Promise<{ objects: KnowledgeChunk[]; truncated: boolean }> {
@@ -179,31 +204,37 @@ export class ArcadeKnowledgeService {
       params.category = opts.category;
     }
     const where = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+    const textClause = where ? `${where} AND \`content\` CONTAINSTEXT :q` : 'WHERE `content` CONTAINSTEXT :q';
 
     if (mode === 'bm25') {
       params.q = queryText;
       return query<KnowledgeChunk>(
         database,
-        `SELECT id, content, originalReference, schemaId, schemaName, version, chunkIndex, category, subcategory FROM Chunk ${where ? where + ' AND' : 'WHERE'} content CONTAINS TEXT :q LIMIT :lim`,
+        `SELECT id, content, originalReference, schemaId, schemaName, version, chunkIndex, category, subcategory FROM Chunk ${textClause} LIMIT :lim`,
         params
       );
     }
 
     const embedding = await embedText(queryText);
-    params.vec = embedding;
-    const vectorSql = `SELECT id, content, originalReference, schemaId, schemaName, version, chunkIndex, category, subcategory, vector.cosineSimilarity(embedding, :vec) as score FROM Chunk ${where} ORDER BY score DESC LIMIT :lim`;
-    const vectorHits = await query<KnowledgeChunk>(database, vectorSql, params);
+    const vectorSql = `SELECT id, content, originalReference, schemaId, schemaName, version, chunkIndex, category, subcategory, vectorCosineSimilarity(\`embedding\`, ${embeddingLiteral(embedding)}) as score FROM Chunk ${where} ORDER BY score DESC LIMIT :lim`;
+    let vectorHits: KnowledgeChunk[] = [];
+    try {
+      vectorHits = await query<KnowledgeChunk>(database, vectorSql, params);
+    } catch (err) {
+      if (mode === 'vector') throw err;
+      console.error('Vector search failed, using keyword matches:', err);
+    }
     if (mode === 'vector') return vectorHits;
 
     params.q = queryText;
     const textHits = await query<KnowledgeChunk>(
       database,
-      `SELECT id, content, originalReference, schemaId, schemaName, version, chunkIndex, category, subcategory FROM Chunk ${where ? where + ' AND' : 'WHERE'} content CONTAINS TEXT :q LIMIT :lim`,
+      `SELECT id, content, originalReference, schemaId, schemaName, version, chunkIndex, category, subcategory FROM Chunk ${textClause} LIMIT :lim`,
       params
     );
     const seen = new Set<string>();
     const merged: KnowledgeChunk[] = [];
-    for (const hit of [...vectorHits, ...textHits]) {
+    for (const hit of [...textHits, ...vectorHits]) {
       if (!hit.id || seen.has(hit.id)) continue;
       seen.add(hit.id);
       merged.push(hit);
@@ -217,8 +248,8 @@ export class ArcadeKnowledgeService {
     const embedding = await embedText(queryText);
     const rows = await query<{ score?: number }>(
       db(userId),
-      `SELECT vector.cosineSimilarity(embedding, :vec) as score FROM Chunk WHERE schemaId IN [${schemaIds.map((_, i) => `:s${i}`).join(', ')}] ORDER BY score DESC LIMIT 1`,
-      Object.fromEntries([['vec', embedding], ...schemaIds.map((id, i) => [`s${i}`, id])])
+      `SELECT vectorCosineSimilarity(\`embedding\`, ${embeddingLiteral(embedding)}) as score FROM Chunk WHERE schemaId IN [${schemaIds.map((_, i) => `:s${i}`).join(', ')}] ORDER BY score DESC LIMIT 1`,
+      Object.fromEntries(schemaIds.map((id, i) => [`s${i}`, id]))
     );
     return Number(rows[0]?.score ?? 0);
   }
@@ -237,7 +268,7 @@ export class ArcadeKnowledgeService {
       db(userId),
       `INSERT INTO Chunk SET id = :id, content = :content, originalReference = :originalReference,
        category = :category, subcategory = :subcategory, schemaId = :schemaId, sourceType = :sourceType,
-       chunkIndex = :chunkIndex, schemaName = :schemaName, version = :version, embedding = :embedding`,
+       chunkIndex = :chunkIndex, schemaName = :schemaName, version = :version, embedding = ${embeddingLiteral(embedding)}`,
       {
         id,
         content: input.content,
@@ -249,7 +280,6 @@ export class ArcadeKnowledgeService {
         chunkIndex: next,
         schemaName,
         version,
-        embedding,
       }
     );
     return { id, chunkIndex: next };
@@ -265,8 +295,7 @@ export class ArcadeKnowledgeService {
     if (fields.content !== undefined) {
       sets.push('content = :content');
       params.content = fields.content;
-      params.embedding = await embedText(fields.content);
-      sets.push('embedding = :embedding');
+      sets.push(`embedding = ${embeddingLiteral(await embedText(fields.content))}`);
     }
     if (fields.category !== undefined) {
       sets.push('category = :category');

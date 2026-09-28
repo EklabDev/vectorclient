@@ -40,6 +40,10 @@ export function parseMaybeJson<T>(value: unknown, fallback: T): T {
   return fallback;
 }
 
+export function quoteIdent(name: string): string {
+  return `\`${name.replace(/`/g, '')}\``;
+}
+
 export function buildWhere(where: Where): { sql: string; params: Record<string, unknown> } {
   const parts: string[] = [];
   const params: Record<string, unknown> = {};
@@ -58,7 +62,7 @@ export function buildWhere(where: Where): { sql: string; params: Record<string, 
         params[name] = v;
         names.push(`:${name}`);
       }
-      parts.push(`${key} IN [${names.join(', ')}]`);
+      parts.push(`${quoteIdent(key)} IN [${names.join(', ')}]`);
       continue;
     }
     if (raw !== null && typeof raw === 'object' && ('gte' in raw || 'lte' in raw) && !('in' in raw)) {
@@ -66,22 +70,22 @@ export function buildWhere(where: Where): { sql: string; params: Record<string, 
       if (range.gte != null) {
         const name = `w${i++}`;
         params[name] = serializeValue(range.gte);
-        parts.push(`${key} >= :${name}`);
+        parts.push(`${quoteIdent(key)} >= :${name}`);
       }
       if (range.lte != null) {
         const name = `w${i++}`;
         params[name] = serializeValue(range.lte);
-        parts.push(`${key} <= :${name}`);
+        parts.push(`${quoteIdent(key)} <= :${name}`);
       }
       continue;
     }
     if (raw === null) {
-      parts.push(`${key} IS NULL`);
+      parts.push(`${quoteIdent(key)} IS NULL`);
       continue;
     }
     const name = `w${i++}`;
     params[name] = serializeValue(raw);
-    parts.push(`${key} = :${name}`);
+    parts.push(`${quoteIdent(key)} = :${name}`);
   }
   return { sql: parts.length ? parts.join(' AND ') : '1 = 1', params };
 }
@@ -92,10 +96,13 @@ export function buildSet(fields: Record<string, unknown>): {
 } {
   const parts: string[] = [];
   const params: Record<string, unknown> = {};
+  let i = 0;
   for (const [key, value] of Object.entries(fields)) {
     if (value === undefined) continue;
-    params[key] = serializeValue(value);
-    parts.push(`${key} = :${key}`);
+    // Parameter names cannot be SQL keywords. maxDepth is MAXDEPTH in ArcadeDB.
+    const name = `p${i++}`;
+    params[name] = serializeValue(value);
+    parts.push(`${quoteIdent(key)} = :${name}`);
   }
   if (parts.length === 0) throw new Error('No fields to update');
   return { sql: parts.join(', '), params };

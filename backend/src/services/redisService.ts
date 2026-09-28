@@ -19,7 +19,8 @@ function getClient(): Redis | null {
   }
   try {
     client = new Redis(url, {
-      maxRetriesPerRequest: 1,
+      // BullMQ workers require this to be null (blocking commands must not cap retries).
+      maxRetriesPerRequest: null,
       enableReadyCheck: true,
       lazyConnect: false,
     });

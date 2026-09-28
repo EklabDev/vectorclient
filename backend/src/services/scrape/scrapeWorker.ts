@@ -20,7 +20,7 @@ export function startScrapeWorker(): Worker | null {
       await runScrapeJob(sourceId, jobId);
     },
     {
-      connection: connection.duplicate(),
+      connection: connection.duplicate({ maxRetriesPerRequest: null }),
       concurrency: 1,
     }
   );

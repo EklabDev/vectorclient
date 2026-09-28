@@ -29,6 +29,7 @@ interface Endpoint {
   updatedAt: string;
   apiTokens?: Token[];
   schemas?: Schema[];
+  topicFilter?: { enabled: boolean; offTopicReply: string };
 }
 
 interface CallLog {
@@ -47,6 +48,9 @@ interface CallLog {
   createdAt: string;
 }
 
+const DEFAULT_OFF_TOPIC =
+  'I can only help with questions about this organization and its programs. Please ask about schedules, offerings, enrollment, or contact information.';
+
 export function EndpointsPage() {
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +65,8 @@ export function EndpointsPage() {
     allowedOrigins: '',
     description: '',
     isActive: true,
+    filterEnabled: true,
+    offTopicReply: DEFAULT_OFF_TOPIC,
   });
   const [selectedTokens, setSelectedTokens] = useState<Array<{ id: string; label: string }>>([]);
   const [selectedSchemas, setSelectedSchemas] = useState<Array<{ id: string; label: string }>>([]);
@@ -154,6 +160,10 @@ export function EndpointsPage() {
         isActive: formData.isActive,
         apiTokenIds: selectedTokens.map((t) => t.id),
         schemaIds: selectedSchemas.map((s) => s.id),
+        topicFilter: {
+          enabled: formData.filterEnabled,
+          offTopicReply: formData.offTopicReply.trim() || DEFAULT_OFF_TOPIC,
+        },
       };
 
       if (editingEndpoint) {
@@ -181,6 +191,8 @@ export function EndpointsPage() {
       allowedOrigins: endpoint.allowedOrigins.join(', '),
       description: endpoint.description || '',
       isActive: endpoint.isActive,
+      filterEnabled: endpoint.topicFilter?.enabled ?? true,
+      offTopicReply: endpoint.topicFilter?.offTopicReply || DEFAULT_OFF_TOPIC,
     });
     setSelectedTokens(
       (endpoint.apiTokens || []).map((t) => ({
@@ -222,6 +234,8 @@ export function EndpointsPage() {
       allowedOrigins: '',
       description: '',
       isActive: true,
+      filterEnabled: true,
+      offTopicReply: DEFAULT_OFF_TOPIC,
     });
     setSelectedTokens([]);
     setSelectedSchemas([]);
@@ -481,6 +495,32 @@ export function EndpointsPage() {
                 />
               </div>
 
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#a1a1aa', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.filterEnabled}
+                    onChange={(e) => setFormData({ ...formData, filterEnabled: e.target.checked })}
+                  />
+                  Restrict replies to attached knowledge
+                </label>
+                <textarea
+                  value={formData.offTopicReply}
+                  onChange={(e) => setFormData({ ...formData, offTopicReply: e.target.value })}
+                  disabled={!formData.filterEnabled}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    marginTop: 8,
+                    padding: 8,
+                    backgroundColor: '#18181b',
+                    border: '1px solid #3f3f46',
+                    borderRadius: 6,
+                    color: formData.filterEnabled ? '#fff' : '#71717a',
+                  }}
+                />
+              </div>
+
               <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="checkbox"
@@ -562,6 +602,7 @@ export function EndpointsPage() {
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Rate Limit</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Tokens</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Schemas</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Topic filter</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Status</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Created</th>
                 <th style={{ padding: '12px', textAlign: 'right', color: '#fff', fontWeight: '600' }}>Actions</th>
@@ -645,6 +686,9 @@ export function EndpointsPage() {
                     ) : (
                       <span style={{ color: '#71717a' }}>None</span>
                     )}
+                  </td>
+                  <td style={{ padding: '12px', color: endpoint.topicFilter?.enabled === false ? '#71717a' : '#a1a1aa' }}>
+                    {endpoint.topicFilter?.enabled === false ? 'Off' : 'On'}
                   </td>
                   <td style={{ padding: '12px' }}>
                     {endpoint.isActive ? (

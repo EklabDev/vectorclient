@@ -16,7 +16,7 @@ function resolveTargetCollections(
 export const searchKnowledgeTool: AgentToolDefinition = {
   name: 'search_knowledge',
   description:
-    'Search the client knowledge base for facts relevant to the user question. Prefer this before answering factual questions.',
+    'Search the client knowledge base for facts relevant to the user question. Prefer this before answering factual questions. Omit schema_id to search every linked collection, including scraped sites.',
   parameters: {
     type: 'object',
     properties: {

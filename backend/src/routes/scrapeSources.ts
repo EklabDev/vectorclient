@@ -5,6 +5,7 @@ import { Schemas } from '../store/schemas';
 import { Scrape } from '../store/scrape';
 import { enqueueScrapeJob } from '../services/queue/scrapeQueue';
 import { runScrapeJob } from '../services/scrape/scrapeRunner';
+import { ArcadeKnowledgeService } from '../services/arcadeKnowledgeService';
 
 const createBody = z.object({
   name: z.string().min(1).max(255),
@@ -90,6 +91,17 @@ export async function scrapeSourceRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
+  app.get('/:id/chunks', async (request, reply) => {
+    const { userId } = request.user as { userId: string };
+    const { id } = request.params as { id: string };
+    const existing = await Scrape.findByIdAndUser(id, userId);
+    if (!existing) {
+      reply.code(404).send({ message: 'Scrape source not found' });
+      return;
+    }
+    return ArcadeKnowledgeService.listSourceChunks(userId, id);
+  });
+
   app.get('/:id/jobs', async (request, reply) => {
     const { userId } = request.user as { userId: string };
     const { id } = request.params as { id: string };
@@ -113,6 +125,7 @@ export async function scrapeSourceRoutes(app: FastifyInstance) {
       reply.code(409).send({ message: 'Crawl already running' });
       return;
     }
+    await Scrape.update(id, { status: 'running', lastError: null });
     const job = await Scrape.createJob(id);
     const queued = await enqueueScrapeJob(id, job.id);
     if (!queued) {

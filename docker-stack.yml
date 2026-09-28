@@ -1,0 +1,102 @@
+# Docker Swarm stack. Build images first, then deploy:
+#   docker swarm init
+#   docker compose -f docker-stack.yml build
+#   set -a && source backend/.env && set +a
+#   docker stack deploy -c docker-stack.yml vectorclient
+#
+# Swarm ignores depends_on. Healthchecks and restart policies bring services up
+# in any order; the backend retries ArcadeDB during bootstrap on the next restart
+# if the database is not ready yet.
+
+services:
+  arcadedb:
+    image: arcadedata/arcadedb:26.5.1
+    environment:
+      JAVA_OPTS: >-
+        -Darcadedb.server.rootPassword=${ARCADEDB_PASSWORD:-arcadedb}
+        -Darcadedb.server.mode=development
+    volumes:
+      - arcadedb_data:/home/arcadedb/databases
+    networks:
+      - vectorclient
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/2480'"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 25s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - vectorclient
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    image: vectorclient-backend:local
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      ARCADEDB_URL: http://arcadedb:2480
+      ARCADEDB_USER: root
+      ARCADEDB_PASSWORD: ${ARCADEDB_PASSWORD:-arcadedb}
+      ARCADEDB_GATEWAY_DB: gateway
+      REDIS_URL: redis://redis:6379
+      AGENT_MODEL: ${AGENT_MODEL:-gpt-4o-mini}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      AES_SECRET: ${AES_SECRET:-32-character-secret-key-here!12345}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    networks:
+      - vectorclient
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+
+  frontend:
+    image: vectorclient-frontend:local
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3001}
+    ports:
+      - "3000:3000"
+    networks:
+      - vectorclient
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+networks:
+  vectorclient:
+    driver: overlay
+    attachable: true
+
+volumes:
+  arcadedb_data:
+  redis_data:

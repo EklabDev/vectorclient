@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ApiClient } from '../../services/api';
+import { ScrapedContent } from './ScrapedContent';
 
 interface ScrapeSource {
   id: string;
@@ -36,10 +37,11 @@ export function ScrapeSourcesPage() {
     maxPages: 50,
   });
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError('');
       const [src, sch] = await Promise.all([
         ApiClient.getScrapeSources() as Promise<ScrapeSource[]>,
@@ -50,13 +52,22 @@ export function ScrapeSourcesPage() {
     } catch (err) {
       setError((err as Error).message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
   }, []);
+
+  const crawling = sources.some((s) => s.status === 'running');
+  useEffect(() => {
+    if (!crawling) return;
+    const timer = setInterval(() => {
+      void load(true);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [crawling]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +98,8 @@ export function ScrapeSourcesPage() {
       setBusyId(id);
       setError('');
       await ApiClient.triggerScrapeCrawl(id);
-      await load();
+      setSources((prev) => prev.map((s) => (s.id === id ? { ...s, status: 'running', lastError: null } : s)));
+      await load(true);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -277,7 +289,10 @@ export function ScrapeSourcesPage() {
                 <tr key={s.id} style={{ borderBottom: '1px solid #3f3f46' }}>
                   <td style={{ padding: 12, color: '#fff' }}>{s.name}</td>
                   <td style={{ padding: 12, color: '#a1a1aa', fontFamily: 'monospace', fontSize: 12 }}>{s.seedUrl}</td>
-                  <td style={{ padding: 12, color: '#a1a1aa' }}>{s.status}{s.lastError ? ` — ${s.lastError}` : ''}</td>
+                  <td style={{ padding: 12, color: s.status === 'failed' ? '#fca5a5' : '#a1a1aa' }}>
+                    {s.status === 'running' ? 'Crawling…' : s.status}
+                    {s.status === 'failed' && s.lastError ? ` — ${s.lastError}` : ''}
+                  </td>
                   <td style={{ padding: 12, color: '#a1a1aa' }}>
                     {s.lastCrawledAt ? new Date(s.lastCrawledAt).toLocaleString() : '—'}
                   </td>
@@ -285,6 +300,20 @@ export function ScrapeSourcesPage() {
                     {s.id}
                   </td>
                   <td style={{ padding: 12 }}>
+                    <button
+                      onClick={() => setViewingId(s.id)}
+                      style={{
+                        marginRight: 8,
+                        padding: '6px 10px',
+                        backgroundColor: '#3f3f46',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      View
+                    </button>
                     <button
                       onClick={() => handleCrawl(s.id)}
                       disabled={busyId === s.id || s.status === 'running'}
@@ -298,7 +327,7 @@ export function ScrapeSourcesPage() {
                         cursor: 'pointer',
                       }}
                     >
-                      {busyId === s.id ? 'Starting…' : 'Crawl'}
+                      {s.status === 'running' || busyId === s.id ? 'Crawling…' : 'Crawl'}
                     </button>
                     <button
                       onClick={() => handleDelete(s.id)}
@@ -320,6 +349,14 @@ export function ScrapeSourcesPage() {
             </tbody>
           </table>
         </div>
+      )}
+      {viewingId && (
+        <ScrapedContent
+          sourceId={viewingId}
+          sourceName={sources.find((s) => s.id === viewingId)?.name || 'Scrape source'}
+          running={sources.find((s) => s.id === viewingId)?.status === 'running'}
+          onClose={() => setViewingId(null)}
+        />
       )}
     </div>
   );

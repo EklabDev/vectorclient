@@ -3,7 +3,7 @@ import { setArcadeFetch } from '../arcade/client';
 import { Users } from './users';
 import { Tokens } from './tokens';
 import { Endpoints } from './endpoints';
-import { buildWhere } from '../arcade/sql';
+import { buildSet, buildWhere } from '../arcade/sql';
 
 describe('sql where builder', () => {
   it('builds IN and range clauses', () => {
@@ -12,11 +12,18 @@ describe('sql where builder', () => {
       id: { in: ['a', 'b'] },
       createdAt: { gte: '2020-01-01', lte: '2020-12-31' },
     });
-    expect(sql).toContain('userId =');
+    expect(sql).toContain('`userId` =');
     expect(sql).toContain('IN');
     expect(sql).toContain('>=');
     expect(sql).toContain('<=');
     expect(Object.keys(params).length).toBeGreaterThan(3);
+  });
+
+  it('binds keyword field names with safe parameters', () => {
+    const { sql, params } = buildSet({ name: 'eklab', maxDepth: 2 });
+    expect(sql).toContain('`maxDepth` = :p1');
+    expect(sql).not.toContain(':maxDepth');
+    expect(params.p1).toBe(2);
   });
 });
 
@@ -34,7 +41,12 @@ describe('gateway store (fake Arcade HTTP)', () => {
       const type = typeMatch?.[1] || 'Unknown';
       docs[type] ||= [];
       if (command.startsWith('INSERT')) {
-        docs[type].push({ ...params });
+        const doc: Record<string, unknown> = {};
+        const assignments = /`([^`]+)`\s*=\s*:(\w+)/g;
+        for (const match of command.matchAll(assignments)) {
+          doc[match[1]] = params[match[2]];
+        }
+        docs[type].push(doc);
         return new Response(JSON.stringify({ result: [] }), { status: 200 });
       }
       if (command.startsWith('SELECT')) {

@@ -1,5 +1,6 @@
 import { GATEWAY_DB, knowledgeDbName } from './config';
 import { command, listDatabases, serverCommand } from './client';
+import { quoteIdent } from './sql';
 
 async function ignoreExists(fn: () => Promise<unknown>): Promise<void> {
   try {
@@ -23,6 +24,13 @@ async function ensureDatabase(name: string): Promise<void> {
   const lower = dbs.map((d) => d.toLowerCase());
   if (lower.includes(name.toLowerCase())) return;
   await ignoreExists(() => serverCommand(`create database ${name}`));
+}
+
+function createPropertySql(type: string, prop: string): string {
+  const space = prop.indexOf(' ');
+  const name = space === -1 ? prop : prop.slice(0, space);
+  const typeSpec = space === -1 ? '' : prop.slice(space + 1);
+  return `CREATE PROPERTY ${type}.${quoteIdent(name)} ${typeSpec}`.trimEnd();
 }
 
 async function ddl(db: string, sql: string): Promise<void> {
@@ -220,7 +228,7 @@ export async function bootstrapGateway(): Promise<void> {
   for (const spec of GATEWAY_TYPES) {
     await ddl(GATEWAY_DB, `CREATE DOCUMENT TYPE ${spec.type}`);
     for (const prop of spec.props) {
-      await ddl(GATEWAY_DB, `CREATE PROPERTY ${spec.type}.${prop}`);
+      await ddl(GATEWAY_DB, createPropertySql(spec.type, prop));
     }
   }
   for (const idx of GATEWAY_INDEXES) {
@@ -270,13 +278,13 @@ export async function bootstrapKnowledgeDb(userId: string): Promise<string> {
     'embedding LIST',
   ];
   for (const prop of chunkProps) {
-    await ddl(db, `CREATE PROPERTY Chunk.${prop}`);
+    await ddl(db, createPropertySql('Chunk', prop));
   }
 
   const entityProps = ['key STRING', 'userId STRING', 'type STRING', 'name STRING', 'propsJson STRING'];
   for (const type of VERTEX_TYPES.filter((t) => t !== 'Chunk')) {
     for (const prop of entityProps) {
-      await ddl(db, `CREATE PROPERTY ${type}.${prop}`);
+      await ddl(db, createPropertySql(type, prop));
     }
     await ddl(db, `CREATE INDEX ON ${type} (key) UNIQUE`);
   }

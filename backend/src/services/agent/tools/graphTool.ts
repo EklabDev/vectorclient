@@ -23,7 +23,8 @@ function asEntityType(value: unknown): GraphEntityType {
 
 export const graphGetEntityTool: AgentToolDefinition = {
   name: 'graph_get_entity',
-  description: 'Look up a structured entity in the client knowledge graph (programs, locations, contacts, etc.).',
+  description:
+    'Look up a knowledge-graph entity and the programs, contacts, and pages connected to it. Related programs describe what an organization does.',
   parameters: {
     type: 'object',
     properties: {
@@ -40,7 +41,16 @@ export const graphGetEntityTool: AgentToolDefinition = {
     const name = String(args.name ?? '').trim();
     if (!name) throw new Error('name is required');
     const entity = await ArcadeGraphService.getEntity(ctx.userId, type, name);
-    return { entity };
+    if (!entity) return { entity: null, related: [] };
+    const related = await ArcadeGraphService.findRelated(ctx.userId, type, name);
+    return {
+      entity,
+      related: related.map((item) => ({
+        type: item.type,
+        name: item.name,
+        relationship: item.relationship,
+      })),
+    };
   },
 };
 

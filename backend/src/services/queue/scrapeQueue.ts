@@ -10,7 +10,7 @@ export function getScrapeQueue(): Queue | null {
   const connection = RedisService.getRawClient();
   if (!connection) return null;
   scrapeQueue = new Queue(SCRAPE_QUEUE_NAME, {
-    connection: connection.duplicate(),
+    connection: connection.duplicate({ maxRetriesPerRequest: null }),
   });
   return scrapeQueue;
 }

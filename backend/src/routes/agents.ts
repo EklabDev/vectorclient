@@ -6,7 +6,7 @@ import { Schemas } from '../store/schemas';
 import { AgentService } from '../services/agent/agentService';
 import type { KnowledgeCollection } from '../services/agent/types';
 import { loadScrapeCollectionsForEndpoint } from '../services/scrape/scrapeCollections';
-import { evaluateTopicGate } from '../services/agent/topicGate';
+import { evaluateTopicGate, type TopicHistoryTurn } from '../services/agent/topicGate';
 import { loadWorkflowState, runCollectionTurn } from '../services/agent/crmWorkflow';
 import {
   authenticateEndpointRequest,
@@ -14,6 +14,7 @@ import {
   requestMeta,
 } from '../utils/endpointAuth';
 import { rateLimitMiddleware } from '../middleware/rateLimit';
+import { RedisService } from '../services/redisService';
 
 const agentBodySchema = z
   .object({
@@ -42,6 +43,15 @@ async function loadLinkedCollections(endpointId: string): Promise<KnowledgeColle
     /* scrape optional */
   }
   return collections;
+}
+
+async function passedConversation(userId: string, conversationId: string): Promise<TopicHistoryTurn[]> {
+  try {
+    const turns = await RedisService.getConversation(userId, conversationId);
+    return turns.filter((turn) => (turn.role === 'user' || turn.role === 'assistant') && turn.content.trim());
+  } catch {
+    return [];
+  }
 }
 
 export async function agentRoutes(app: FastifyInstance) {
@@ -101,10 +111,12 @@ export async function agentRoutes(app: FastifyInstance) {
       const { message, conversation_id, ...rest } = parsed.data;
       const extraContext: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(rest)) {
-        if (k !== 'message' && k !== 'conversation_id') extraContext[k] = v;
+        if (k === 'message' || k === 'conversation_id' || k === 'session_id') continue;
+        extraContext[k] = v;
       }
 
-      const conversationId = conversation_id?.trim() || uuidv4();
+      const sessionId = typeof rest.session_id === 'string' ? rest.session_id.trim() : '';
+      const conversationId = conversation_id?.trim() || sessionId || uuidv4();
       const wfState = await loadWorkflowState(params.user_id, conversationId);
       const collection = await runCollectionTurn({
         userId: params.user_id,
@@ -138,11 +150,12 @@ export async function agentRoutes(app: FastifyInstance) {
       }
 
       const collections = await loadLinkedCollections(auth.endpoint.id);
+      const history = await passedConversation(params.user_id, conversationId);
       const topic = await evaluateTopicGate({
-        userId: params.user_id,
         message,
-        schemaIds: collections.filter((c) => c.sourceType === 'schema').map((c) => c.schemaId),
+        collections,
         filter: parseTopicFilter(auth.endpoint.topicFilterJson),
+        history,
       });
       if (!topic.allow) {
         const responseBody = { reply: topic.reply, conversation_id: conversationId, filtered: true };

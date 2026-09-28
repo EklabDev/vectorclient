@@ -31,14 +31,12 @@ export class ApiClient {
   ): Promise<T> {
     const url = endpoint.startsWith('http') ? endpoint : `${getApiBaseUrl()}${endpoint}`;
 
-    // For DELETE requests without a body, don't set Content-Type header
-    const method = options.method || 'GET';
-    const hasBody = options.body !== undefined && options.body !== null;
-    const shouldSetContentType = method !== 'DELETE' || hasBody;
+    // Fastify rejects an empty body when Content-Type is application/json.
+    const hasBody = options.body !== undefined && options.body !== null && options.body !== '';
 
     const headers: Record<string, string> = {
       ...(useAuthStore.getState().token && { Authorization: `Bearer ${useAuthStore.getState().token}` }),
-      ...(shouldSetContentType && { 'Content-Type': 'application/json' }),
+      ...(hasBody && { 'Content-Type': 'application/json' }),
       ...(options.headers as Record<string, string>),
     };
 
@@ -300,6 +298,12 @@ export class ApiClient {
 
   static getScrapeJobs(id: string) {
     return this.request(`/api/scrape-sources/${id}/jobs`);
+  }
+
+  static getScrapeChunks(id: string) {
+    return this.request<{ objects: Array<{ id: string; content?: string; originalReference?: string; category?: string; subcategory?: string }>; truncated: boolean }>(
+      `/api/scrape-sources/${id}/chunks`
+    );
   }
 
   static studioQuery(body: {
