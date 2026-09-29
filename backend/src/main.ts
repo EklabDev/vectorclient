@@ -29,8 +29,15 @@ app.register(fastifyJwt, {
   sign: { expiresIn: '24h' },
 });
 
+function corsOrigin(): true | string[] {
+  const raw = (process.env.CORS_ORIGIN || 'http://localhost:3000').trim();
+  if (raw === '*') return true;
+  const origins = raw.split(',').map((item) => item.trim()).filter(Boolean);
+  return origins.length > 0 ? origins : ['http://localhost:3000'];
+}
+
 app.register(fastifyCors, {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: corsOrigin(),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 });
 
