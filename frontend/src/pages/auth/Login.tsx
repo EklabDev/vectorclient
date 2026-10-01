@@ -9,22 +9,22 @@ export function LoginPage() {
       justifyContent: 'center', 
       alignItems: 'center', 
       height: '100vh', 
-      backgroundColor: '#18181b' 
+      backgroundColor: '#0f172a' 
     }}>
       <div style={{ 
         width: '100%', 
         maxWidth: '400px', 
         padding: '40px', 
-        backgroundColor: '#27272a', 
+        backgroundColor: '#1e293b', 
         borderRadius: '8px', 
-        border: '1px solid #3f3f46',
+        border: '1px solid #334155',
         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.3)' 
       }}>
         <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#fff' }}>Login</h1>
         <LoginForm />
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <p style={{ color: '#a1a1aa' }}>
-            Don't have an account? <Link to="/register" style={{ color: '#3b82f6' }}>Register</Link>
+            Don't have an account? <Link to="/register" style={{ color: '#14b8a6' }}>Register</Link>
           </p>
         </div>
       </div>

@@ -35,15 +35,15 @@ export function RegisterPage() {
       justifyContent: 'center', 
       alignItems: 'center', 
       height: '100vh', 
-      backgroundColor: '#18181b' 
+      backgroundColor: '#0f172a' 
     }}>
       <div style={{ 
         width: '100%', 
         maxWidth: '400px', 
         padding: '40px', 
-        backgroundColor: '#27272a', 
+        backgroundColor: '#1e293b', 
         borderRadius: '8px', 
-        border: '1px solid #3f3f46',
+        border: '1px solid #334155',
         boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.3)' 
       }}>
         <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#fff' }}>Register</h1>
@@ -57,8 +57,8 @@ export function RegisterPage() {
             style={{
               padding: '10px',
               borderRadius: '6px',
-              border: '1px solid #3f3f46',
-              backgroundColor: '#18181b',
+              border: '1px solid #334155',
+              backgroundColor: '#0f172a',
               color: '#fff',
               fontSize: '14px'
             }}
@@ -72,8 +72,8 @@ export function RegisterPage() {
             style={{
               padding: '10px',
               borderRadius: '6px',
-              border: '1px solid #3f3f46',
-              backgroundColor: '#18181b',
+              border: '1px solid #334155',
+              backgroundColor: '#0f172a',
               color: '#fff',
               fontSize: '14px'
             }}
@@ -87,8 +87,8 @@ export function RegisterPage() {
             style={{
               padding: '10px',
               borderRadius: '6px',
-              border: '1px solid #3f3f46',
-              backgroundColor: '#18181b',
+              border: '1px solid #334155',
+              backgroundColor: '#0f172a',
               color: '#fff',
               fontSize: '14px'
             }}
@@ -102,8 +102,8 @@ export function RegisterPage() {
             style={{
               padding: '10px',
               borderRadius: '6px',
-              border: '1px solid #3f3f46',
-              backgroundColor: '#18181b',
+              border: '1px solid #334155',
+              backgroundColor: '#0f172a',
               color: '#fff',
               fontSize: '14px'
             }}
@@ -115,7 +115,7 @@ export function RegisterPage() {
             style={{
               padding: '10px',
               cursor: loading ? 'not-allowed' : 'pointer',
-              backgroundColor: loading ? '#3f3f46' : '#3b82f6',
+              backgroundColor: loading ? '#334155' : '#3b82f6',
               color: '#fff',
               border: 'none',
               borderRadius: '6px',
@@ -127,7 +127,7 @@ export function RegisterPage() {
         </form>
          <div style={{ marginTop: '20px', textAlign: 'center' }}>
           <p style={{ color: '#a1a1aa' }}>
-            Already have an account? <Link to="/login" style={{ color: '#3b82f6' }}>Login</Link>
+            Already have an account? <Link to="/login" style={{ color: '#14b8a6' }}>Login</Link>
           </p>
         </div>
       </div>

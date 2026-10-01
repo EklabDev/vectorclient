@@ -260,7 +260,7 @@ export function ScrapeSourcesPage() {
               <button type="button" onClick={() => setShowCreate(false)} style={{ padding: '8px 12px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: 6 }}>
                 Cancel
               </button>
-              <button type="submit" style={{ padding: '8px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6 }}>
+              <button type="submit" style={{ padding: '8px 12px', background: '#0d9488', color: '#fff', border: 'none', borderRadius: 6 }}>
                 Create
               </button>
             </div>

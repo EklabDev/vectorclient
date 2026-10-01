@@ -144,7 +144,7 @@ export class CrawlerService {
                 const titleMatch = jinaText.match(/Title:\s*(.+)/);
                 if (titleMatch) pageTitle = titleMatch[1].trim();
               }
-              const linkMatches = jinaText.matchAll(/\[.*?\]\((https?:\/\/[^\s\)]+)\)/g);
+              const linkMatches = jinaText.matchAll(/\[.*?\]\(([^)\s]+)\)/g);
               for (const m of linkMatches) {
                 pageLinks.push(m[1]);
               }
@@ -174,6 +174,7 @@ export class CrawlerService {
         const next = normalizeUrl(href, item.url);
         if (!next || seen.has(next)) continue;
         if (!allowed.has(domainOf(next))) continue;
+        if (/\.(png|jpg|jpeg|gif|webp|svg|ico|pdf|zip|mp4|webm|css|js)(\?.*)?$/i.test(next)) continue;
         queue.push({ url: next, depth: item.depth + 1 });
       }
     }

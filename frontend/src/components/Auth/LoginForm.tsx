@@ -64,7 +64,7 @@ export function LoginForm() {
         style={{
           padding: '10px',
           cursor: loading ? 'not-allowed' : 'pointer',
-          backgroundColor: loading ? '#3f3f46' : '#3b82f6',
+          backgroundColor: loading ? '#334155' : '#0d9488',
           color: '#fff',
           border: 'none',
           borderRadius: '6px',
