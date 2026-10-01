@@ -89,7 +89,7 @@ export function Autocomplete({
                 alignItems: 'center',
                 gap: '6px',
                 padding: '4px 8px',
-                backgroundColor: '#3b82f6',
+                backgroundColor: '#0d9488',
                 color: '#fff',
                 borderRadius: '6px',
                 fontSize: '14px',
@@ -102,7 +102,7 @@ export function Autocomplete({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#fff',
+                  color: '#111827',
                   cursor: 'pointer',
                   padding: '0',
                   fontSize: '16px',
@@ -130,10 +130,10 @@ export function Autocomplete({
         style={{
           width: '100%',
           padding: '8px',
-          backgroundColor: '#18181b',
-          border: '1px solid #3f3f46',
+          backgroundColor: '#f9fafb',
+          border: '1px solid #e5e7eb',
           borderRadius: '6px',
-          color: '#fff',
+          color: '#111827',
           fontSize: '14px',
         }}
       />
@@ -147,8 +147,8 @@ export function Autocomplete({
             left: 0,
             right: 0,
             marginTop: '4px',
-            backgroundColor: '#27272a',
-            border: '1px solid #3f3f46',
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
             borderRadius: '6px',
             maxHeight: '200px',
             overflowY: 'auto',
@@ -163,12 +163,12 @@ export function Autocomplete({
               style={{
                 padding: '10px 12px',
                 cursor: 'pointer',
-                color: '#fff',
+                color: '#111827',
                 fontSize: '14px',
-                borderBottom: '1px solid #3f3f46',
+                borderBottom: '1px solid #e5e7eb',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#3f3f46';
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';

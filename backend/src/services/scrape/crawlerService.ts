@@ -1,6 +1,7 @@
 import * as cheerio from 'cheerio';
 import { createHash } from 'crypto';
 import { RedisService } from '../redisService';
+import { pagesFromSpaShell } from './spaJsonFallback';
 
 export type CrawledPage = {
   url: string;
@@ -93,6 +94,7 @@ export class CrawlerService {
 
     const queue: Array<{ url: string; depth: number }> = [{ url: seed, depth: 0 }];
     const seen = new Set<string>();
+    const spaHosts = new Set<string>();
     const pages: CrawledPage[] = [];
 
     while (queue.length > 0 && pages.length < options.maxPages) {
@@ -125,37 +127,18 @@ export class CrawlerService {
       let pageText = text;
       const pageLinks = [...links];
 
-      // Fallback for Client-Side Rendered (CSR / SPA) sites (e.g. Vite / React apps with empty <div id="root">)
       if (!pageText || pageText.length < 40) {
-        try {
-          const jinaRes = await fetch(`https://r.jina.ai/${item.url}`, {
-            headers: {
-              'Accept': 'text/plain',
-              'X-Return-Format': 'markdown',
-              'User-Agent': 'VectorClientBot/1.0',
-            },
-            signal: AbortSignal.timeout(20000),
-          });
-          if (jinaRes.ok) {
-            const jinaText = await jinaRes.text();
-            if (jinaText && jinaText.length >= 40) {
-              pageText = jinaText;
-              if (!pageTitle) {
-                const titleMatch = jinaText.match(/Title:\s*(.+)/);
-                if (titleMatch) pageTitle = titleMatch[1].trim();
-              }
-              const linkMatches = jinaText.matchAll(/\[.*?\]\(([^)\s]+)\)/g);
-              for (const m of linkMatches) {
-                pageLinks.push(m[1]);
-              }
-            }
+        const host = new URL(item.url).origin;
+        if (!spaHosts.has(host)) {
+          spaHosts.add(host);
+          const extra = await pagesFromSpaShell(html, item.url);
+          for (const page of extra) {
+            if (pages.length >= options.maxPages) break;
+            pages.push(page);
           }
-        } catch {
-          // ignore fallback error
         }
+        continue;
       }
-
-      if (!pageText || pageText.length < 40) continue;
 
       const formattedText = pageText.startsWith('#')
         ? pageText.slice(0, 100_000)

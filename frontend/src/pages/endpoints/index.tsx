@@ -59,7 +59,6 @@ export function EndpointsPage() {
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
   const [formData, setFormData] = useState({
     routeName: '',
-    route: '',
     rateLimit: 100,
     rateLimitWindowMs: 60000,
     allowedOrigins: '',
@@ -152,7 +151,6 @@ export function EndpointsPage() {
 
       const payload = {
         routeName: formData.routeName,
-        route: formData.route,
         rateLimit: formData.rateLimit,
         rateLimitWindowMs: formData.rateLimitWindowMs,
         allowedOrigins: allowedOriginsArray,
@@ -185,7 +183,6 @@ export function EndpointsPage() {
     setEditingEndpoint(endpoint);
     setFormData({
       routeName: endpoint.routeName,
-      route: endpoint.route,
       rateLimit: endpoint.rateLimit,
       rateLimitWindowMs: endpoint.rateLimitWindowMs,
       allowedOrigins: endpoint.allowedOrigins.join(', '),
@@ -228,7 +225,6 @@ export function EndpointsPage() {
   const resetForm = () => {
     setFormData({
       routeName: '',
-      route: '',
       rateLimit: 100,
       rateLimitWindowMs: 60000,
       allowedOrigins: '',
@@ -273,13 +269,13 @@ export function EndpointsPage() {
     if (status >= 300 && status < 400) return '#3b82f6'; // blue
     if (status >= 400 && status < 500) return '#f59e0b'; // yellow
     if (status >= 500) return '#ef4444'; // red
-    return '#a1a1aa'; // gray
+    return '#111827'; // gray
   };
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#fff' }}>Endpoints</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#111827' }}>Endpoints</h1>
         <button
           onClick={() => {
             setShowCreateModal(true);
@@ -288,7 +284,7 @@ export function EndpointsPage() {
           }}
           style={{
             padding: '8px 16px',
-            backgroundColor: '#3b82f6',
+            backgroundColor: '#0d9488',
             color: '#fff',
             border: 'none',
             borderRadius: '6px',
@@ -303,8 +299,8 @@ export function EndpointsPage() {
       {error && (
         <div style={{
           padding: '12px',
-          backgroundColor: '#7f1d1d',
-          color: '#fca5a5',
+          backgroundColor: '#fef2f2',
+          color: '#b91c1c',
           borderRadius: '6px',
           marginBottom: '20px'
         }}>
@@ -328,20 +324,20 @@ export function EndpointsPage() {
           padding: '20px'
         }}>
           <div style={{
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             padding: '24px',
             borderRadius: '8px',
             width: '90%',
             maxWidth: '600px',
-            border: '1px solid #3f3f46',
+            border: '1px solid #e5e7eb',
             margin: 'auto'
           }}>
-            <h2 style={{ marginTop: 0, color: '#fff' }}>
+            <h2 style={{ marginTop: 0, color: '#111827' }}>
               {editingEndpoint ? 'Edit Endpoint' : 'Create New Endpoint'}
             </h2>
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                   Route Name *
                 </label>
                 <input
@@ -352,41 +348,19 @@ export function EndpointsPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '14px'
                   }}
                   placeholder="e.g., Payment Webhook"
                 />
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
-                  Route Path *
-                </label>
-                <input
-                  type="text"
-                  value={formData.route}
-                  onChange={(e) => setFormData({ ...formData, route: e.target.value })}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
-                    borderRadius: '6px',
-                    color: '#fff',
-                    fontSize: '14px'
-                  }}
-                  placeholder="e.g., /webhook/payment"
-                />
-              </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                     Rate Limit
                   </label>
                   <input
@@ -397,16 +371,16 @@ export function EndpointsPage() {
                     style={{
                       width: '100%',
                       padding: '8px',
-                      backgroundColor: '#18181b',
-                      border: '1px solid #3f3f46',
+                      backgroundColor: '#f9fafb',
+                      border: '1px solid #e5e7eb',
                       borderRadius: '6px',
-                      color: '#fff',
+                      color: '#111827',
                       fontSize: '14px'
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                     Window (ms)
                   </label>
                   <input
@@ -417,10 +391,10 @@ export function EndpointsPage() {
                     style={{
                       width: '100%',
                       padding: '8px',
-                      backgroundColor: '#18181b',
-                      border: '1px solid #3f3f46',
+                      backgroundColor: '#f9fafb',
+                      border: '1px solid #e5e7eb',
                       borderRadius: '6px',
-                      color: '#fff',
+                      color: '#111827',
                       fontSize: '14px'
                     }}
                   />
@@ -428,7 +402,7 @@ export function EndpointsPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                   Allowed Origins (comma-separated)
                 </label>
                 <input
@@ -438,10 +412,10 @@ export function EndpointsPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '14px'
                   }}
                   placeholder="e.g., https://example.com, https://app.example.com"
@@ -449,7 +423,7 @@ export function EndpointsPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                   Description
                 </label>
                 <textarea
@@ -459,10 +433,10 @@ export function EndpointsPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '14px',
                     fontFamily: 'inherit',
                     resize: 'vertical'
@@ -472,7 +446,7 @@ export function EndpointsPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                   API Tokens
                 </label>
                 <Autocomplete
@@ -484,7 +458,7 @@ export function EndpointsPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                   Schemas (Knowledge Base)
                 </label>
                 <Autocomplete
@@ -496,7 +470,7 @@ export function EndpointsPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#a1a1aa', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#111827', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={formData.filterEnabled}
@@ -513,10 +487,10 @@ export function EndpointsPage() {
                     width: '100%',
                     marginTop: 8,
                     padding: 8,
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: 6,
-                    color: formData.filterEnabled ? '#fff' : '#71717a',
+                    color: formData.filterEnabled ? '#111827' : '#111827',
                   }}
                 />
               </div>
@@ -528,7 +502,7 @@ export function EndpointsPage() {
                   onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                   style={{ cursor: 'pointer' }}
                 />
-                <label style={{ color: '#a1a1aa', cursor: 'pointer' }}>Active</label>
+                <label style={{ color: '#111827', cursor: 'pointer' }}>Active</label>
               </div>
 
               <div style={{ display: 'flex', gap: '12px' }}>
@@ -537,7 +511,7 @@ export function EndpointsPage() {
                   style={{
                     flex: 1,
                     padding: '8px',
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: '#0d9488',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '6px',
@@ -556,8 +530,8 @@ export function EndpointsPage() {
                   style={{
                     flex: 1,
                     padding: '8px',
-                    backgroundColor: '#3f3f46',
-                    color: '#fff',
+                    backgroundColor: '#e5e7eb',
+                    color: '#111827',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: 'pointer'
@@ -572,50 +546,48 @@ export function EndpointsPage() {
       )}
 
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#a1a1aa' }}>Loading endpoints...</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: '#111827' }}>Loading endpoints...</div>
       ) : endpoints.length === 0 ? (
         <div style={{
           padding: '40px',
           textAlign: 'center',
-          color: '#a1a1aa',
-          backgroundColor: '#27272a',
+          color: '#111827',
+          backgroundColor: '#ffffff',
           borderRadius: '8px',
-          border: '1px solid #3f3f46'
+          border: '1px solid #e5e7eb'
         }}>
           No endpoints found. Create your first one!
         </div>
       ) : (
         <div style={{
-          backgroundColor: '#27272a',
+          backgroundColor: '#ffffff',
           borderRadius: '8px',
-          border: '1px solid #3f3f46',
+          border: '1px solid #e5e7eb',
           overflow: 'hidden'
         }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ backgroundColor: '#18181b', borderBottom: '1px solid #3f3f46' }}>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Name</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>User ID</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Endpoint ID</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Route</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Native Agent URL</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Rate Limit</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Tokens</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Schemas</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Topic filter</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Status</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Created</th>
-                <th style={{ padding: '12px', textAlign: 'right', color: '#fff', fontWeight: '600' }}>Actions</th>
+              <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Name</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>User ID</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Endpoint ID</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Native Agent URL</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Rate Limit</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Tokens</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Schemas</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Topic filter</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Status</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Created</th>
+                <th style={{ padding: '12px', textAlign: 'right', color: '#111827', fontWeight: '600' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {endpoints.map((endpoint) => (
-                <tr key={endpoint.id} style={{ borderBottom: '1px solid #3f3f46' }}>
-                  <td style={{ padding: '12px', color: '#fff' }}>{endpoint.routeName}</td>
-                  <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace', fontSize: '12px' }}>{endpoint.userId}</td>
-                  <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace', fontSize: '12px' }}>{endpoint.id}</td>
-                  <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace' }}>{endpoint.route}</td>
-                  <td style={{ padding: '12px', color: '#93c5fd', fontFamily: 'monospace', fontSize: '11px' }}>
+                <tr key={endpoint.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={{ padding: '12px', color: '#111827' }}>{endpoint.routeName}</td>
+                  <td style={{ padding: '12px', color: '#111827', fontFamily: 'monospace', fontSize: '12px' }}>{endpoint.userId}</td>
+                  <td style={{ padding: '12px', color: '#111827', fontFamily: 'monospace', fontSize: '12px' }}>{endpoint.id}</td>
+                  <td style={{ padding: '12px', color: '#0f766e', fontFamily: 'monospace', fontSize: '11px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span title="POST this path with x-api-key (same auth as n8n proxy)">
                         /api/v1/agents/{endpoint.id}/{endpoint.userId}
@@ -629,8 +601,8 @@ export function EndpointsPage() {
                         style={{
                           padding: '2px 6px',
                           fontSize: 11,
-                          backgroundColor: '#3f3f46',
-                          color: '#fff',
+                          backgroundColor: '#e5e7eb',
+                          color: '#111827',
                           border: 'none',
                           borderRadius: 4,
                           cursor: 'pointer',
@@ -640,10 +612,10 @@ export function EndpointsPage() {
                       </button>
                     </div>
                   </td>
-                  <td style={{ padding: '12px', color: '#a1a1aa' }}>
+                  <td style={{ padding: '12px', color: '#111827' }}>
                     {endpoint.rateLimit} / {endpoint.rateLimitWindowMs / 1000}s
                   </td>
-                  <td style={{ padding: '12px', color: '#a1a1aa', fontSize: '12px' }}>
+                  <td style={{ padding: '12px', color: '#111827', fontSize: '12px' }}>
                     {endpoint.apiTokens && endpoint.apiTokens.length > 0 ? (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                         {endpoint.apiTokens.map((token) => (
@@ -651,7 +623,7 @@ export function EndpointsPage() {
                             key={token.id}
                             style={{
                               padding: '2px 6px',
-                              backgroundColor: '#3b82f6',
+                              backgroundColor: '#0d9488',
                               borderRadius: '4px',
                               fontSize: '11px',
                             }}
@@ -662,10 +634,10 @@ export function EndpointsPage() {
                         ))}
                       </div>
                     ) : (
-                      <span style={{ color: '#71717a' }}>None</span>
+                      <span style={{ color: '#111827' }}>None</span>
                     )}
                   </td>
-                  <td style={{ padding: '12px', color: '#a1a1aa', fontSize: '12px' }}>
+                  <td style={{ padding: '12px', color: '#111827', fontSize: '12px' }}>
                     {endpoint.schemas && endpoint.schemas.length > 0 ? (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
                         {endpoint.schemas.map((schema) => (
@@ -684,10 +656,10 @@ export function EndpointsPage() {
                         ))}
                       </div>
                     ) : (
-                      <span style={{ color: '#71717a' }}>None</span>
+                      <span style={{ color: '#111827' }}>None</span>
                     )}
                   </td>
-                  <td style={{ padding: '12px', color: endpoint.topicFilter?.enabled === false ? '#71717a' : '#a1a1aa' }}>
+                  <td style={{ padding: '12px', color: '#111827' }}>
                     {endpoint.topicFilter?.enabled === false ? 'Off' : 'On'}
                   </td>
                   <td style={{ padding: '12px' }}>
@@ -697,7 +669,7 @@ export function EndpointsPage() {
                       <span style={{ color: '#ef4444' }}>Inactive</span>
                     )}
                   </td>
-                  <td style={{ padding: '12px', color: '#a1a1aa' }}>{formatDate(endpoint.createdAt)}</td>
+                  <td style={{ padding: '12px', color: '#111827' }}>{formatDate(endpoint.createdAt)}</td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                       <button
@@ -718,7 +690,7 @@ export function EndpointsPage() {
                         onClick={() => setCrmEndpointId(endpoint.id)}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#6366f1',
+                          backgroundColor: '#0f766e',
                           color: '#fff',
                           border: 'none',
                           borderRadius: '6px',
@@ -732,7 +704,7 @@ export function EndpointsPage() {
                         onClick={() => handleEdit(endpoint)}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#3b82f6',
+                          backgroundColor: '#0d9488',
                           color: '#fff',
                           border: 'none',
                           borderRadius: '6px',
@@ -747,8 +719,8 @@ export function EndpointsPage() {
                         disabled={deletingId === endpoint.id}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: deletingId === endpoint.id ? '#3f3f46' : '#7f1d1d',
-                          color: '#fff',
+                          backgroundColor: deletingId === endpoint.id ? '#e5e7eb' : '#7f1d1d',
+                          color: '#111827',
                           border: 'none',
                           borderRadius: '6px',
                           cursor: deletingId === endpoint.id ? 'not-allowed' : 'pointer',
@@ -783,19 +755,19 @@ export function EndpointsPage() {
           padding: '20px'
         }}>
           <div style={{
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             padding: '24px',
             borderRadius: '8px',
             width: '90%',
             maxWidth: '1200px',
             maxHeight: '90vh',
-            border: '1px solid #3f3f46',
+            border: '1px solid #e5e7eb',
             margin: 'auto',
             display: 'flex',
             flexDirection: 'column'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, color: '#fff' }}>Call History</h2>
+              <h2 style={{ margin: 0, color: '#111827' }}>Call History</h2>
               <button
                 onClick={() => {
                   setViewingLogsFor(null);
@@ -804,8 +776,8 @@ export function EndpointsPage() {
                 }}
                 style={{
                   padding: '8px 16px',
-                  backgroundColor: '#3f3f46',
-                  color: '#fff',
+                  backgroundColor: '#e5e7eb',
+                  color: '#111827',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer'
@@ -818,8 +790,8 @@ export function EndpointsPage() {
             {logsError && (
               <div style={{
                 padding: '12px',
-                backgroundColor: '#7f1d1d',
-                color: '#fca5a5',
+                backgroundColor: '#fef2f2',
+                color: '#b91c1c',
                 borderRadius: '6px',
                 marginBottom: '20px'
               }}>
@@ -828,32 +800,32 @@ export function EndpointsPage() {
             )}
 
             {logsLoading ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#a1a1aa' }}>Loading logs...</div>
+              <div style={{ padding: '40px', textAlign: 'center', color: '#111827' }}>Loading logs...</div>
             ) : callLogs.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#a1a1aa' }}>
+              <div style={{ padding: '40px', textAlign: 'center', color: '#111827' }}>
                 No call logs found for this endpoint.
               </div>
             ) : (
               <div style={{ overflowX: 'auto', flex: 1 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ backgroundColor: '#18181b', borderBottom: '1px solid #3f3f46' }}>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Time</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Method</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Status</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Response Time</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>IP Address</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Error</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Details</th>
+                    <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Time</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Method</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Status</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Response Time</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>IP Address</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Error</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Details</th>
                     </tr>
                   </thead>
                   <tbody>
                     {callLogs.map((log) => (
-                      <tr key={log.id} style={{ borderBottom: '1px solid #3f3f46' }}>
-                        <td style={{ padding: '12px', color: '#a1a1aa', fontSize: '12px' }}>
+                      <tr key={log.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <td style={{ padding: '12px', color: '#111827', fontSize: '12px' }}>
                           {formatDate(log.createdAt)}
                         </td>
-                        <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace', fontSize: '12px' }}>
+                        <td style={{ padding: '12px', color: '#111827', fontFamily: 'monospace', fontSize: '12px' }}>
                           {log.method}
                         </td>
                         <td style={{ padding: '12px' }}>
@@ -864,13 +836,13 @@ export function EndpointsPage() {
                             {log.status}
                           </span>
                         </td>
-                        <td style={{ padding: '12px', color: '#a1a1aa', fontSize: '12px' }}>
+                        <td style={{ padding: '12px', color: '#111827', fontSize: '12px' }}>
                           {log.responseTime}ms
                         </td>
-                        <td style={{ padding: '12px', color: '#a1a1aa', fontSize: '12px', fontFamily: 'monospace' }}>
+                        <td style={{ padding: '12px', color: '#111827', fontSize: '12px', fontFamily: 'monospace' }}>
                           {log.ipAddress || 'N/A'}
                         </td>
-                        <td style={{ padding: '12px', color: log.errorMessage ? '#ef4444' : '#71717a', fontSize: '12px' }}>
+                        <td style={{ padding: '12px', color: log.errorMessage ? '#ef4444' : '#111827', fontSize: '12px' }}>
                           {log.errorMessage ? 'Yes' : 'No'}
                         </td>
                         <td style={{ padding: '12px' }}>
@@ -878,7 +850,7 @@ export function EndpointsPage() {
                             onClick={() => setSelectedLog(log)}
                             style={{
                               padding: '4px 8px',
-                              backgroundColor: '#3b82f6',
+                              backgroundColor: '#0d9488',
                               color: '#fff',
                               border: 'none',
                               borderRadius: '4px',
@@ -915,23 +887,23 @@ export function EndpointsPage() {
           padding: '20px'
         }}>
           <div style={{
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             padding: '24px',
             borderRadius: '8px',
             width: '90%',
             maxWidth: '800px',
             maxHeight: '90vh',
-            border: '1px solid #3f3f46',
+            border: '1px solid #e5e7eb',
             overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, color: '#fff' }}>Log Details</h3>
+              <h3 style={{ margin: 0, color: '#111827' }}>Log Details</h3>
               <button
                 onClick={() => setSelectedLog(null)}
                 style={{
                   padding: '8px 16px',
-                  backgroundColor: '#3f3f46',
-                  color: '#fff',
+                  backgroundColor: '#e5e7eb',
+                  color: '#111827',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer'
@@ -943,15 +915,15 @@ export function EndpointsPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ color: '#a1a1aa', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Path</label>
-                <div style={{ color: '#fff', fontFamily: 'monospace', fontSize: '14px', padding: '8px', backgroundColor: '#18181b', borderRadius: '4px' }}>
+                <label style={{ color: '#111827', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Path</label>
+                <div style={{ color: '#111827', fontFamily: 'monospace', fontSize: '14px', padding: '8px', backgroundColor: '#f9fafb', borderRadius: '4px' }}>
                   {selectedLog.path}
                 </div>
               </div>
 
               <div>
-                <label style={{ color: '#a1a1aa', fontSize: '12px', display: 'block', marginBottom: '4px' }}>User Agent</label>
-                <div style={{ color: '#fff', fontSize: '14px', padding: '8px', backgroundColor: '#18181b', borderRadius: '4px' }}>
+                <label style={{ color: '#111827', fontSize: '12px', display: 'block', marginBottom: '4px' }}>User Agent</label>
+                <div style={{ color: '#111827', fontSize: '14px', padding: '8px', backgroundColor: '#f9fafb', borderRadius: '4px' }}>
                   {selectedLog.userAgent || 'N/A'}
                 </div>
               </div>
@@ -959,7 +931,7 @@ export function EndpointsPage() {
               {selectedLog.errorMessage && (
                 <div>
                   <label style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Error Message</label>
-                  <div style={{ color: '#fca5a5', fontSize: '14px', padding: '8px', backgroundColor: '#18181b', borderRadius: '4px' }}>
+                  <div style={{ color: '#b91c1c', fontSize: '14px', padding: '8px', backgroundColor: '#f9fafb', borderRadius: '4px' }}>
                     {selectedLog.errorMessage}
                   </div>
                 </div>
@@ -967,12 +939,12 @@ export function EndpointsPage() {
 
               {selectedLog.requestBody && (
                 <div>
-                  <label style={{ color: '#a1a1aa', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Request Body</label>
+                  <label style={{ color: '#111827', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Request Body</label>
                   <pre style={{
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '12px',
                     padding: '12px',
-                    backgroundColor: '#18181b',
+                    backgroundColor: '#f9fafb',
                     borderRadius: '4px',
                     overflow: 'auto',
                     maxHeight: '200px',
@@ -988,12 +960,12 @@ export function EndpointsPage() {
 
               {selectedLog.responseBody && (
                 <div>
-                  <label style={{ color: '#a1a1aa', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Response Body</label>
+                  <label style={{ color: '#111827', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Response Body</label>
                   <pre style={{
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '12px',
                     padding: '12px',
-                    backgroundColor: '#18181b',
+                    backgroundColor: '#f9fafb',
                     borderRadius: '4px',
                     overflow: 'auto',
                     maxHeight: '200px',

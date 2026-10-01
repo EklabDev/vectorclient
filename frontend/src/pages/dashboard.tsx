@@ -65,13 +65,13 @@ export function DashboardPage() {
 
   return (
     <div>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px', color: '#fff' }}>Dashboard</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '20px', color: '#111827' }}>Dashboard</h1>
 
       {error && (
         <div style={{
           padding: '12px',
-          backgroundColor: '#7f1d1d',
-          color: '#fca5a5',
+          backgroundColor: '#fef2f2',
+          color: '#b91c1c',
           borderRadius: '6px',
           marginBottom: '20px'
         }}>
@@ -80,45 +80,45 @@ export function DashboardPage() {
       )}
 
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#a1a1aa' }}>Loading dashboard...</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: '#111827' }}>Loading dashboard...</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
           <div style={{
             padding: '20px',
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             borderRadius: '8px',
-            border: '1px solid #3f3f46'
+            border: '1px solid #e5e7eb'
           }}>
-            <h3 style={{ marginTop: 0, color: '#a1a1aa', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
+            <h3 style={{ marginTop: 0, color: '#111827', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
               Total Endpoints
             </h3>
-            <p style={{ fontSize: '32px', fontWeight: 'bold', margin: '10px 0', color: '#fff' }}>
+            <p style={{ fontSize: '32px', fontWeight: 'bold', margin: '10px 0', color: '#111827' }}>
               {stats.totalEndpoints}
             </p>
           </div>
           <div style={{
             padding: '20px',
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             borderRadius: '8px',
-            border: '1px solid #3f3f46'
+            border: '1px solid #e5e7eb'
           }}>
-            <h3 style={{ marginTop: 0, color: '#a1a1aa', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
+            <h3 style={{ marginTop: 0, color: '#111827', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
               Active Tokens
             </h3>
-            <p style={{ fontSize: '32px', fontWeight: 'bold', margin: '10px 0', color: '#fff' }}>
+            <p style={{ fontSize: '32px', fontWeight: 'bold', margin: '10px 0', color: '#111827' }}>
               {stats.activeTokens}
             </p>
           </div>
           <div style={{
             padding: '20px',
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             borderRadius: '8px',
-            border: '1px solid #3f3f46'
+            border: '1px solid #e5e7eb'
           }}>
-            <h3 style={{ marginTop: 0, color: '#a1a1aa', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
+            <h3 style={{ marginTop: 0, color: '#111827', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
               Requests (24h)
             </h3>
-            <p style={{ fontSize: '32px', fontWeight: 'bold', margin: '10px 0', color: '#fff' }}>
+            <p style={{ fontSize: '32px', fontWeight: 'bold', margin: '10px 0', color: '#111827' }}>
               {stats.requests24h}
             </p>
           </div>

@@ -36,9 +36,9 @@ export function LoginForm() {
         style={{
           padding: '10px',
           borderRadius: '6px',
-          border: '1px solid #3f3f46',
-          backgroundColor: '#18181b',
-          color: '#fff',
+          border: '1px solid #e5e7eb',
+          backgroundColor: '#f9fafb',
+          color: '#111827',
           fontSize: '14px'
         }}
       />
@@ -51,21 +51,21 @@ export function LoginForm() {
         style={{
           padding: '10px',
           borderRadius: '6px',
-          border: '1px solid #3f3f46',
-          backgroundColor: '#18181b',
-          color: '#fff',
+          border: '1px solid #e5e7eb',
+          backgroundColor: '#f9fafb',
+          color: '#111827',
           fontSize: '14px'
         }}
       />
-      {error && <p style={{ color: '#fca5a5', margin: 0, fontSize: '14px' }}>{error}</p>}
+      {error && <p style={{ color: '#b91c1c', margin: 0, fontSize: '14px' }}>{error}</p>}
       <button
         type="submit"
         disabled={loading}
         style={{
           padding: '10px',
           cursor: loading ? 'not-allowed' : 'pointer',
-          backgroundColor: loading ? '#334155' : '#0d9488',
-          color: '#fff',
+          backgroundColor: loading ? '#e5e7eb' : '#0d9488',
+          color: '#111827',
           border: 'none',
           borderRadius: '6px',
           fontWeight: '500'

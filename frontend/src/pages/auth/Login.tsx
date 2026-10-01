@@ -1,5 +1,6 @@
 import { LoginForm } from '../../components/Auth/LoginForm';
 import { Link } from 'react-router-dom';
+import { BrandLogo } from '../../components/Common/BrandLogo';
 
 export function LoginPage() {
   return (
@@ -9,22 +10,25 @@ export function LoginPage() {
       justifyContent: 'center', 
       alignItems: 'center', 
       height: '100vh', 
-      backgroundColor: '#0f172a' 
+      backgroundColor: '#f7f6f3' 
     }}>
       <div style={{ 
         width: '100%', 
         maxWidth: '400px', 
         padding: '40px', 
-        backgroundColor: '#1e293b', 
+        backgroundColor: '#ffffff', 
         borderRadius: '8px', 
-        border: '1px solid #334155',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.3)' 
+        border: '1px solid #e5e7eb',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)' 
       }}>
-        <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#fff' }}>Login</h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+          <BrandLogo width={168} />
+        </div>
+        <h1 style={{ textAlign: 'center', margin: '0 0 30px', color: '#111827', fontSize: 18, fontWeight: 600 }}>Login</h1>
         <LoginForm />
         <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <p style={{ color: '#a1a1aa' }}>
-            Don't have an account? <Link to="/register" style={{ color: '#14b8a6' }}>Register</Link>
+          <p style={{ color: '#111827' }}>
+            Don't have an account? <Link to="/register" style={{ color: '#0d9488' }}>Register</Link>
           </p>
         </div>
       </div>

@@ -181,7 +181,7 @@ export function SchemasPage() {
     <div>
       <style>{`@keyframes schemas-card-spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#fff' }}>Schemas & Knowledge</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#111827' }}>Schemas & Knowledge</h1>
         <button
           onClick={() => {
             setShowCreateModal(true);
@@ -191,7 +191,7 @@ export function SchemasPage() {
           }}
           style={{
             padding: '8px 16px',
-            backgroundColor: '#3b82f6',
+            backgroundColor: '#0d9488',
             color: '#fff',
             border: 'none',
             borderRadius: '6px',
@@ -206,8 +206,8 @@ export function SchemasPage() {
       {error && (
         <div style={{
           padding: '12px',
-          backgroundColor: '#7f1d1d',
-          color: '#fca5a5',
+          backgroundColor: '#fef2f2',
+          color: '#b91c1c',
           borderRadius: '6px',
           marginBottom: '20px'
         }}>
@@ -231,27 +231,27 @@ export function SchemasPage() {
           padding: '20px'
         }}>
           <div style={{
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             padding: '24px',
             borderRadius: '8px',
             width: '90%',
             maxWidth: '800px',
-            border: '1px solid #3f3f46',
+            border: '1px solid #e5e7eb',
             margin: 'auto',
             maxHeight: '90vh',
             overflowY: 'auto'
           }}>
-            <h2 style={{ marginTop: 0, color: '#fff' }}>
+            <h2 style={{ marginTop: 0, color: '#111827' }}>
               {viewMode ? 'View knowledge' : editingSchema ? 'Edit knowledge' : 'Create New Schema'}
             </h2>
             {viewMode && editingSchema && (
               <div style={{ 
                 marginBottom: '16px', 
                 padding: '12px', 
-                backgroundColor: '#18181b', 
+                backgroundColor: '#f9fafb', 
                 borderRadius: '6px',
                 fontSize: '12px',
-                color: '#a1a1aa'
+                color: '#111827'
               }}>
                 <div style={{ marginBottom: '4px' }}>
                   <strong>Schema ID:</strong> <span style={{ fontFamily: 'monospace' }}>{editingSchema.id}</span>
@@ -265,13 +265,13 @@ export function SchemasPage() {
                   <strong>Version:</strong> {editingSchema.version} | <strong>Status:</strong> {editingSchema.isPublished ? (
                     <span style={{ color: '#10b981' }}>Published</span>
                   ) : (
-                    <span style={{ color: '#a1a1aa' }}>Draft</span>
+                    <span style={{ color: '#111827' }}>Draft</span>
                   )}
                 </div>
                 {editingSchema.systemPrompt && (
                   <div style={{ marginTop: '8px' }}>
                     <strong>System prompt:</strong>
-                    <pre style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '12px', color: '#a1a1aa' }}>
+                    <pre style={{ margin: '4px 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '12px', color: '#111827' }}>
                       {editingSchema.systemPrompt}
                     </pre>
                   </div>
@@ -280,7 +280,7 @@ export function SchemasPage() {
             )}
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                   Schema Name *
                 </label>
                 <input
@@ -292,10 +292,10 @@ export function SchemasPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '14px',
                     opacity: viewMode ? 0.6 : 1
                   }}
@@ -304,7 +304,7 @@ export function SchemasPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                   Description
                 </label>
                 <textarea
@@ -315,10 +315,10 @@ export function SchemasPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '14px',
                     fontFamily: 'inherit',
                     resize: 'vertical',
@@ -329,7 +329,7 @@ export function SchemasPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                   System prompt (optional)
                 </label>
                 <textarea
@@ -340,10 +340,10 @@ export function SchemasPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '14px',
                     fontFamily: 'inherit',
                     resize: 'vertical',
@@ -354,7 +354,7 @@ export function SchemasPage() {
               </div>
 
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                   Markdown Content (Knowledge Base) *
                 </label>
                 <textarea
@@ -366,10 +366,10 @@ export function SchemasPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '14px',
                     fontFamily: 'monospace',
                     resize: 'vertical',
@@ -386,7 +386,7 @@ export function SchemasPage() {
                     style={{
                       flex: 1,
                       padding: '8px',
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: '#0d9488',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '6px',
@@ -406,8 +406,8 @@ export function SchemasPage() {
                     style={{
                       flex: 1,
                       padding: '8px',
-                      backgroundColor: '#3f3f46',
-                      color: '#fff',
+                      backgroundColor: '#e5e7eb',
+                      color: '#111827',
                       border: 'none',
                       borderRadius: '6px',
                       cursor: 'pointer'
@@ -430,8 +430,8 @@ export function SchemasPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#3f3f46',
-                    color: '#fff',
+                    backgroundColor: '#e5e7eb',
+                    color: '#111827',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: 'pointer'
@@ -446,15 +446,15 @@ export function SchemasPage() {
       )}
 
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#a1a1aa' }}>Loading schemas...</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: '#111827' }}>Loading schemas...</div>
       ) : schemas.length === 0 ? (
         <div style={{
           padding: '40px',
           textAlign: 'center',
-          color: '#a1a1aa',
-          backgroundColor: '#27272a',
+          color: '#111827',
+          backgroundColor: '#ffffff',
           borderRadius: '8px',
-          border: '1px solid #3f3f46'
+          border: '1px solid #e5e7eb'
         }}>
           No schemas found. Add markdown content to power your AI endpoints.
         </div>
@@ -469,9 +469,9 @@ export function SchemasPage() {
               key={schema.id}
               style={{
                 position: 'relative',
-                backgroundColor: '#27272a',
+                backgroundColor: '#ffffff',
                 borderRadius: '8px',
-                border: '1px solid #3f3f46',
+                border: '1px solid #e5e7eb',
                 padding: '20px',
                 display: 'flex',
                 flexDirection: 'column'
@@ -495,33 +495,33 @@ export function SchemasPage() {
                     style={{
                       width: 36,
                       height: 36,
-                      border: '3px solid #3f3f46',
-                      borderTopColor: '#3b82f6',
+                      border: '3px solid #e5e7eb',
+                      borderTopColor: '#0d9488',
                       borderRadius: '50%',
                       animation: 'schemas-card-spin 0.8s linear infinite',
                     }}
                   />
                 </div>
               )}
-              <h3 style={{ marginTop: 0, marginBottom: '8px', color: '#fff' }}>{schema.name}</h3>
+              <h3 style={{ marginTop: 0, marginBottom: '8px', color: '#111827' }}>{schema.name}</h3>
               {schema.description && (
-                <p style={{ color: '#a1a1aa', fontSize: '14px', marginBottom: '12px' }}>
+                <p style={{ color: '#111827', fontSize: '14px', marginBottom: '12px' }}>
                   {schema.description}
                 </p>
               )}
-              <div style={{ marginBottom: '12px', fontSize: '12px', color: '#71717a' }}>
+              <div style={{ marginBottom: '12px', fontSize: '12px', color: '#111827' }}>
                 <div>Version: {schema.version}</div>
                 <div>Status: {schema.isPublished ? (
                   <span style={{ color: '#10b981' }}>Published</span>
                 ) : (
-                  <span style={{ color: '#a1a1aa' }}>Draft</span>
+                  <span style={{ color: '#111827' }}>Draft</span>
                 )}</div>
                 <div style={{ marginTop: '4px', wordBreak: 'break-all' }}>
                   <div>Schema ID: <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{schema.id}</span></div>
                 </div>
                 <div style={{ marginTop: '4px' }}>Updated: {formatDate(schema.updatedAt)}</div>
                 {schema.isPublished && (
-                  <div style={{ marginTop: '6px', color: '#93c5fd' }}>
+                  <div style={{ marginTop: '6px', color: '#0f766e' }}>
                     Knowledge objects: {weaviateCounts[schema.id] ?? '—'}
                   </div>
                 )}
@@ -531,15 +531,15 @@ export function SchemasPage() {
                   style={{
                     marginBottom: 10,
                     padding: 10,
-                    backgroundColor: '#18181b',
+                    backgroundColor: '#f9fafb',
                     borderRadius: 6,
                     fontSize: 11,
-                    color: '#a1a1aa',
+                    color: '#111827',
                     maxHeight: 72,
                     overflow: 'hidden',
                   }}
                 >
-                  <strong style={{ color: '#d4d4d8' }}>System prompt:</strong>{' '}
+                  <strong style={{ color: '#111827' }}>System prompt:</strong>{' '}
                   {schema.systemPrompt.length > 180 ? `${schema.systemPrompt.slice(0, 180)}…` : schema.systemPrompt}
                 </div>
               )}
@@ -547,10 +547,10 @@ export function SchemasPage() {
                 flex: 1,
                 marginBottom: '12px',
                 padding: '12px',
-                backgroundColor: '#18181b',
+                backgroundColor: '#f9fafb',
                 borderRadius: '6px',
                 fontSize: '12px',
-                color: '#a1a1aa',
+                color: '#111827',
                 fontFamily: 'monospace',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -567,8 +567,8 @@ export function SchemasPage() {
                   style={{
                     width: '100%',
                     padding: '6px 12px',
-                    backgroundColor: togglingId === schema.id ? '#3f3f46' : (schema.isPublished ? '#f59e0b' : '#10b981'),
-                    color: '#fff',
+                    backgroundColor: togglingId === schema.id ? '#e5e7eb' : (schema.isPublished ? '#f59e0b' : '#10b981'),
+                    color: '#111827',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: togglingId === schema.id ? 'not-allowed' : 'pointer',
@@ -587,7 +587,7 @@ export function SchemasPage() {
                       style={{
                         flex: 1,
                         padding: '6px 12px',
-                        backgroundColor: '#3b82f6',
+                        backgroundColor: '#0d9488',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '6px',
@@ -602,7 +602,7 @@ export function SchemasPage() {
                       style={{
                         flex: 1,
                         padding: '6px 12px',
-                        backgroundColor: '#3b82f6',
+                        backgroundColor: '#0d9488',
                         color: '#fff',
                         border: 'none',
                         borderRadius: '6px',
@@ -640,7 +640,7 @@ export function SchemasPage() {
                         style={{
                           flex: 1,
                           padding: '6px 12px',
-                          backgroundColor: '#7c3aed',
+                          backgroundColor: '#0f766e',
                           color: '#fff',
                           border: 'none',
                           borderRadius: '6px',
@@ -660,8 +660,8 @@ export function SchemasPage() {
                     disabled={deletingId === schema.id}
                     style={{
                       padding: '6px 12px',
-                      backgroundColor: deletingId === schema.id ? '#3f3f46' : '#7f1d1d',
-                      color: '#fff',
+                      backgroundColor: deletingId === schema.id ? '#e5e7eb' : '#7f1d1d',
+                      color: '#111827',
                       border: 'none',
                       borderRadius: '6px',
                       cursor: deletingId === schema.id ? 'not-allowed' : 'pointer',

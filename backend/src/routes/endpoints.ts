@@ -17,7 +17,6 @@ const topicFilterSchema = z
 
 const createEndpointSchema = z.object({
   routeName: z.string().min(1),
-  route: z.string().min(1),
   rateLimit: z.number().int().positive().optional().default(100),
   rateLimitWindowMs: z.number().int().positive().optional().default(60000),
   allowedOrigins: z.array(z.string()).optional().default([]),
@@ -49,6 +48,15 @@ async function withAssociations(endpointId: string) {
       .map((s, i) => (s ? { id: s.id, name: s.name, order: schemaLinks[i].order } : null))
       .filter(Boolean),
   };
+}
+
+async function allocateRoute(userId: string): Promise<string> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const route = `/e/${crypto.randomUUID()}`;
+    const conflict = await Endpoints.findByRoute(userId, route);
+    if (!conflict) return route;
+  }
+  throw new Error('Could not allocate a unique route');
 }
 
 export async function endpointRoutes(app: FastifyInstance) {
@@ -83,11 +91,6 @@ export async function endpointRoutes(app: FastifyInstance) {
     try {
       const { userId } = request.user as { userId: string };
       const body = createEndpointSchema.parse(request.body);
-      const conflict = await Endpoints.findByRoute(userId, body.route);
-      if (conflict) {
-        reply.code(409).send({ message: 'Endpoint with this route already exists' });
-        return;
-      }
       if (body.apiTokenIds.length) {
         const toks = await Tokens.findByIds(userId, body.apiTokenIds);
         if (toks.length !== body.apiTokenIds.length) {
@@ -105,7 +108,7 @@ export async function endpointRoutes(app: FastifyInstance) {
       const created = await Endpoints.create({
         userId,
         routeName: body.routeName,
-        route: body.route,
+        route: await allocateRoute(userId),
         rateLimit: body.rateLimit,
         rateLimitWindowMs: body.rateLimitWindowMs,
         allowedOrigins: body.allowedOrigins,
@@ -135,16 +138,8 @@ export async function endpointRoutes(app: FastifyInstance) {
         reply.code(404).send({ message: 'Endpoint not found' });
         return;
       }
-      if (body.route && body.route !== existing.route) {
-        const conflict = await Endpoints.findByRoute(userId, body.route);
-        if (conflict) {
-          reply.code(409).send({ message: 'Endpoint with this route already exists' });
-          return;
-        }
-      }
       await Endpoints.update(id, {
         ...(body.routeName !== undefined && { routeName: body.routeName }),
-        ...(body.route !== undefined && { route: body.route }),
         ...(body.rateLimit !== undefined && { rateLimit: body.rateLimit }),
         ...(body.rateLimitWindowMs !== undefined && { rateLimitWindowMs: body.rateLimitWindowMs }),
         ...(body.allowedOrigins !== undefined && { allowedOrigins: body.allowedOrigins }),

@@ -127,13 +127,13 @@ export function TokensPage() {
     if (status >= 300 && status < 400) return '#3b82f6'; // blue
     if (status >= 400 && status < 500) return '#f59e0b'; // yellow
     if (status >= 500) return '#ef4444'; // red
-    return '#a1a1aa'; // gray
+    return '#111827'; // gray
   };
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#fff' }}>API Tokens</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: 0, color: '#111827' }}>API Tokens</h1>
         <button
           onClick={() => {
             setShowCreateModal(true);
@@ -141,7 +141,7 @@ export function TokensPage() {
           }}
           style={{
             padding: '8px 16px',
-            backgroundColor: '#3b82f6',
+            backgroundColor: '#0d9488',
             color: '#fff',
             border: 'none',
             borderRadius: '6px',
@@ -156,8 +156,8 @@ export function TokensPage() {
       {error && (
         <div style={{
           padding: '12px',
-          backgroundColor: '#7f1d1d',
-          color: '#fca5a5',
+          backgroundColor: '#fef2f2',
+          color: '#b91c1c',
           borderRadius: '6px',
           marginBottom: '20px'
         }}>
@@ -179,25 +179,25 @@ export function TokensPage() {
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             padding: '24px',
             borderRadius: '8px',
             width: '90%',
             maxWidth: '500px',
-            border: '1px solid #3f3f46'
+            border: '1px solid #e5e7eb'
           }}>
             {createdToken ? (
               <div>
-                <h2 style={{ marginTop: 0, color: '#fff' }}>Token Created</h2>
-                <p style={{ color: '#a1a1aa', marginBottom: '12px' }}>
+                <h2 style={{ marginTop: 0, color: '#111827' }}>Token Created</h2>
+                <p style={{ color: '#111827', marginBottom: '12px' }}>
                   <strong style={{ color: '#fbbf24' }}>Important:</strong> Copy this token now. You won't be able to see it again!
                 </p>
                 <div style={{
                   padding: '12px',
-                  backgroundColor: '#18181b',
+                  backgroundColor: '#f9fafb',
                   borderRadius: '6px',
                   marginBottom: '16px',
-                  border: '1px solid #3f3f46',
+                  border: '1px solid #e5e7eb',
                   wordBreak: 'break-all',
                   fontFamily: 'monospace',
                   color: '#10b981'
@@ -212,7 +212,7 @@ export function TokensPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#3b82f6',
+                    backgroundColor: '#0d9488',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '6px',
@@ -230,8 +230,8 @@ export function TokensPage() {
                   style={{
                     width: '100%',
                     padding: '8px',
-                    backgroundColor: '#3f3f46',
-                    color: '#fff',
+                    backgroundColor: '#e5e7eb',
+                    color: '#111827',
                     border: 'none',
                     borderRadius: '6px',
                     cursor: 'pointer'
@@ -242,9 +242,9 @@ export function TokensPage() {
               </div>
             ) : (
               <form onSubmit={handleCreateToken}>
-                <h2 style={{ marginTop: 0, color: '#fff' }}>Create New Token</h2>
+                <h2 style={{ marginTop: 0, color: '#111827' }}>Create New Token</h2>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                     Token Name
                   </label>
                   <input
@@ -255,17 +255,17 @@ export function TokensPage() {
                     style={{
                       width: '100%',
                       padding: '8px',
-                      backgroundColor: '#18181b',
-                      border: '1px solid #3f3f46',
+                      backgroundColor: '#f9fafb',
+                      border: '1px solid #e5e7eb',
                       borderRadius: '6px',
-                      color: '#fff',
+                      color: '#111827',
                       fontSize: '14px'
                     }}
                     placeholder="e.g., Production API Key"
                   />
                 </div>
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', color: '#a1a1aa' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', color: '#111827' }}>
                     Expires In (days, optional)
                   </label>
                   <input
@@ -276,10 +276,10 @@ export function TokensPage() {
                     style={{
                       width: '100%',
                       padding: '8px',
-                      backgroundColor: '#18181b',
-                      border: '1px solid #3f3f46',
+                      backgroundColor: '#f9fafb',
+                      border: '1px solid #e5e7eb',
                       borderRadius: '6px',
-                      color: '#fff',
+                      color: '#111827',
                       fontSize: '14px'
                     }}
                     placeholder="Leave empty for no expiration"
@@ -291,7 +291,7 @@ export function TokensPage() {
                     style={{
                       flex: 1,
                       padding: '8px',
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: '#0d9488',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '6px',
@@ -306,8 +306,8 @@ export function TokensPage() {
                     style={{
                       flex: 1,
                       padding: '8px',
-                      backgroundColor: '#3f3f46',
-                      color: '#fff',
+                      backgroundColor: '#e5e7eb',
+                      color: '#111827',
                       border: 'none',
                       borderRadius: '6px',
                       cursor: 'pointer'
@@ -323,42 +323,42 @@ export function TokensPage() {
       )}
 
       {loading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#a1a1aa' }}>Loading tokens...</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: '#111827' }}>Loading tokens...</div>
       ) : tokens.length === 0 ? (
         <div style={{
           padding: '40px',
           textAlign: 'center',
-          color: '#a1a1aa',
-          backgroundColor: '#27272a',
+          color: '#111827',
+          backgroundColor: '#ffffff',
           borderRadius: '8px',
-          border: '1px solid #3f3f46'
+          border: '1px solid #e5e7eb'
         }}>
           No active tokens. Generate one to access your endpoints securely.
         </div>
       ) : (
         <div style={{
-          backgroundColor: '#27272a',
+          backgroundColor: '#ffffff',
           borderRadius: '8px',
-          border: '1px solid #3f3f46',
+          border: '1px solid #e5e7eb',
           overflow: 'hidden'
         }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ backgroundColor: '#18181b', borderBottom: '1px solid #3f3f46' }}>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Name</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Prefix</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Status</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Last Used</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Expires</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Created</th>
-                <th style={{ padding: '12px', textAlign: 'right', color: '#fff', fontWeight: '600' }}>Actions</th>
+              <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Name</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Prefix</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Status</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Last Used</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Expires</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Created</th>
+                <th style={{ padding: '12px', textAlign: 'right', color: '#111827', fontWeight: '600' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {tokens.map((token) => (
-                <tr key={token.id} style={{ borderBottom: '1px solid #3f3f46' }}>
-                  <td style={{ padding: '12px', color: '#fff' }}>{token.tokenName}</td>
-                  <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace' }}>{token.tokenPrefix}...</td>
+                <tr key={token.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={{ padding: '12px', color: '#111827' }}>{token.tokenName}</td>
+                  <td style={{ padding: '12px', color: '#111827', fontFamily: 'monospace' }}>{token.tokenPrefix}...</td>
                   <td style={{ padding: '12px' }}>
                     {!token.isActive ? (
                       <span style={{ color: '#ef4444' }}>Revoked</span>
@@ -368,11 +368,11 @@ export function TokensPage() {
                       <span style={{ color: '#10b981' }}>Active</span>
                     )}
                   </td>
-                  <td style={{ padding: '12px', color: '#a1a1aa' }}>{formatDate(token.lastUsedAt)}</td>
-                  <td style={{ padding: '12px', color: '#a1a1aa' }}>
+                  <td style={{ padding: '12px', color: '#111827' }}>{formatDate(token.lastUsedAt)}</td>
+                  <td style={{ padding: '12px', color: '#111827' }}>
                     {token.expiresAt ? formatDate(token.expiresAt) : 'Never'}
                   </td>
-                  <td style={{ padding: '12px', color: '#a1a1aa' }}>{formatDate(token.createdAt)}</td>
+                  <td style={{ padding: '12px', color: '#111827' }}>{formatDate(token.createdAt)}</td>
                   <td style={{ padding: '12px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                       <button
@@ -395,8 +395,8 @@ export function TokensPage() {
                           disabled={revokingId === token.id}
                           style={{
                             padding: '6px 12px',
-                            backgroundColor: revokingId === token.id ? '#3f3f46' : '#7f1d1d',
-                            color: '#fff',
+                            backgroundColor: revokingId === token.id ? '#e5e7eb' : '#7f1d1d',
+                            color: '#111827',
                             border: 'none',
                             borderRadius: '6px',
                             cursor: revokingId === token.id ? 'not-allowed' : 'pointer',
@@ -432,19 +432,19 @@ export function TokensPage() {
           padding: '20px'
         }}>
           <div style={{
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             padding: '24px',
             borderRadius: '8px',
             width: '90%',
             maxWidth: '1200px',
             maxHeight: '90vh',
-            border: '1px solid #3f3f46',
+            border: '1px solid #e5e7eb',
             margin: 'auto',
             display: 'flex',
             flexDirection: 'column'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, color: '#fff' }}>Token Usage History</h2>
+              <h2 style={{ margin: 0, color: '#111827' }}>Token Usage History</h2>
               <button
                 onClick={() => {
                   setViewingUsageFor(null);
@@ -454,8 +454,8 @@ export function TokensPage() {
                 }}
                 style={{
                   padding: '8px 16px',
-                  backgroundColor: '#3f3f46',
-                  color: '#fff',
+                  backgroundColor: '#e5e7eb',
+                  color: '#111827',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer'
@@ -468,8 +468,8 @@ export function TokensPage() {
             {logsError && (
               <div style={{
                 padding: '12px',
-                backgroundColor: '#7f1d1d',
-                color: '#fca5a5',
+                backgroundColor: '#fef2f2',
+                color: '#b91c1c',
                 borderRadius: '6px',
                 marginBottom: '20px'
               }}>
@@ -478,32 +478,32 @@ export function TokensPage() {
             )}
 
             {logsLoading ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#a1a1aa' }}>Loading usage history...</div>
+              <div style={{ padding: '40px', textAlign: 'center', color: '#111827' }}>Loading usage history...</div>
             ) : tokenLogs.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#a1a1aa' }}>
+              <div style={{ padding: '40px', textAlign: 'center', color: '#111827' }}>
                 No usage history found for this token.
               </div>
             ) : (
               <div style={{ overflowX: 'auto', flex: 1 }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ backgroundColor: '#18181b', borderBottom: '1px solid #3f3f46' }}>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Time</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Method</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Status</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Response Time</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>IP Address</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Error</th>
-                      <th style={{ padding: '12px', textAlign: 'left', color: '#fff', fontWeight: '600' }}>Details</th>
+                    <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Time</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Method</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Status</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Response Time</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>IP Address</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Error</th>
+                      <th style={{ padding: '12px', textAlign: 'left', color: '#111827', fontWeight: '600' }}>Details</th>
                     </tr>
                   </thead>
                   <tbody>
                     {tokenLogs.map((log) => (
-                      <tr key={log.id} style={{ borderBottom: '1px solid #3f3f46' }}>
-                        <td style={{ padding: '12px', color: '#a1a1aa', fontSize: '12px' }}>
+                      <tr key={log.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                        <td style={{ padding: '12px', color: '#111827', fontSize: '12px' }}>
                           {formatDate(log.createdAt)}
                         </td>
-                        <td style={{ padding: '12px', color: '#a1a1aa', fontFamily: 'monospace', fontSize: '12px' }}>
+                        <td style={{ padding: '12px', color: '#111827', fontFamily: 'monospace', fontSize: '12px' }}>
                           {log.method}
                         </td>
                         <td style={{ padding: '12px' }}>
@@ -514,13 +514,13 @@ export function TokensPage() {
                             {log.status}
                           </span>
                         </td>
-                        <td style={{ padding: '12px', color: '#a1a1aa', fontSize: '12px' }}>
+                        <td style={{ padding: '12px', color: '#111827', fontSize: '12px' }}>
                           {log.responseTime}ms
                         </td>
-                        <td style={{ padding: '12px', color: '#a1a1aa', fontSize: '12px', fontFamily: 'monospace' }}>
+                        <td style={{ padding: '12px', color: '#111827', fontSize: '12px', fontFamily: 'monospace' }}>
                           {log.ipAddress || 'N/A'}
                         </td>
-                        <td style={{ padding: '12px', color: log.errorMessage ? '#ef4444' : '#71717a', fontSize: '12px' }}>
+                        <td style={{ padding: '12px', color: log.errorMessage ? '#ef4444' : '#111827', fontSize: '12px' }}>
                           {log.errorMessage ? 'Yes' : 'No'}
                         </td>
                         <td style={{ padding: '12px' }}>
@@ -528,7 +528,7 @@ export function TokensPage() {
                             onClick={() => setSelectedLog(log)}
                             style={{
                               padding: '4px 8px',
-                              backgroundColor: '#3b82f6',
+                              backgroundColor: '#0d9488',
                               color: '#fff',
                               border: 'none',
                               borderRadius: '4px',
@@ -565,23 +565,23 @@ export function TokensPage() {
           padding: '20px'
         }}>
           <div style={{
-            backgroundColor: '#27272a',
+            backgroundColor: '#ffffff',
             padding: '24px',
             borderRadius: '8px',
             width: '90%',
             maxWidth: '800px',
             maxHeight: '90vh',
-            border: '1px solid #3f3f46',
+            border: '1px solid #e5e7eb',
             overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, color: '#fff' }}>Log Details</h3>
+              <h3 style={{ margin: 0, color: '#111827' }}>Log Details</h3>
               <button
                 onClick={() => setSelectedLog(null)}
                 style={{
                   padding: '8px 16px',
-                  backgroundColor: '#3f3f46',
-                  color: '#fff',
+                  backgroundColor: '#e5e7eb',
+                  color: '#111827',
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer'
@@ -593,15 +593,15 @@ export function TokensPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ color: '#a1a1aa', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Path</label>
-                <div style={{ color: '#fff', fontFamily: 'monospace', fontSize: '14px', padding: '8px', backgroundColor: '#18181b', borderRadius: '4px' }}>
+                <label style={{ color: '#111827', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Path</label>
+                <div style={{ color: '#111827', fontFamily: 'monospace', fontSize: '14px', padding: '8px', backgroundColor: '#f9fafb', borderRadius: '4px' }}>
                   {selectedLog.path}
                 </div>
               </div>
 
               <div>
-                <label style={{ color: '#a1a1aa', fontSize: '12px', display: 'block', marginBottom: '4px' }}>User Agent</label>
-                <div style={{ color: '#fff', fontSize: '14px', padding: '8px', backgroundColor: '#18181b', borderRadius: '4px' }}>
+                <label style={{ color: '#111827', fontSize: '12px', display: 'block', marginBottom: '4px' }}>User Agent</label>
+                <div style={{ color: '#111827', fontSize: '14px', padding: '8px', backgroundColor: '#f9fafb', borderRadius: '4px' }}>
                   {selectedLog.userAgent || 'N/A'}
                 </div>
               </div>
@@ -609,7 +609,7 @@ export function TokensPage() {
               {selectedLog.errorMessage && (
                 <div>
                   <label style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Error Message</label>
-                  <div style={{ color: '#fca5a5', fontSize: '14px', padding: '8px', backgroundColor: '#18181b', borderRadius: '4px' }}>
+                  <div style={{ color: '#b91c1c', fontSize: '14px', padding: '8px', backgroundColor: '#f9fafb', borderRadius: '4px' }}>
                     {selectedLog.errorMessage}
                   </div>
                 </div>
@@ -617,12 +617,12 @@ export function TokensPage() {
 
               {selectedLog.requestBody && (
                 <div>
-                  <label style={{ color: '#a1a1aa', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Request Body</label>
+                  <label style={{ color: '#111827', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Request Body</label>
                   <pre style={{
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '12px',
                     padding: '12px',
-                    backgroundColor: '#18181b',
+                    backgroundColor: '#f9fafb',
                     borderRadius: '4px',
                     overflow: 'auto',
                     maxHeight: '200px',
@@ -638,12 +638,12 @@ export function TokensPage() {
 
               {selectedLog.responseBody && (
                 <div>
-                  <label style={{ color: '#a1a1aa', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Response Body</label>
+                  <label style={{ color: '#111827', fontSize: '12px', display: 'block', marginBottom: '4px' }}>Response Body</label>
                   <pre style={{
-                    color: '#fff',
+                    color: '#111827',
                     fontSize: '12px',
                     padding: '12px',
-                    backgroundColor: '#18181b',
+                    backgroundColor: '#f9fafb',
                     borderRadius: '4px',
                     overflow: 'auto',
                     maxHeight: '200px',

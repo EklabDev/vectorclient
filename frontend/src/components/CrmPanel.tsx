@@ -64,7 +64,7 @@ export function CrmPanel({ endpointId, onClose }: { endpointId: string; onClose:
           <h2 style={{ margin: 0 }}>CRM webhooks & collection</h2>
           <button onClick={onClose} style={btnGhost}>Close</button>
         </div>
-        {error && <div style={{ color: '#fca5a5' }}>{error}</div>}
+        {error && <div style={{ color: '#b91c1c' }}>{error}</div>}
 
         <h3>Webhooks</h3>
         {webhooks.map((w) => (
@@ -114,7 +114,7 @@ export function CrmPanel({ endpointId, onClose }: { endpointId: string; onClose:
         >
           Add webhook
         </button>
-        {testResult && <p style={{ color: '#86efac' }}>{testResult}</p>}
+        {testResult && <p style={{ color: '#047857' }}>{testResult}</p>}
 
         <h3>Fields to collect</h3>
         {fields.map((f, i) => (
@@ -125,7 +125,7 @@ export function CrmPanel({ endpointId, onClose }: { endpointId: string; onClose:
               <option value="email">email</option>
               <option value="number">number</option>
             </select>
-            <label style={{ fontSize: 12, color: '#9aa3b5' }}>
+            <label style={{ fontSize: 12, color: '#111827' }}>
               <input type="checkbox" checked={f.required} onChange={(e) => updateField(i, { required: e.target.checked })} /> req
             </label>
             <input value={f.prompt} onChange={(e) => updateField(i, { prompt: e.target.value })} placeholder="Question to ask" />
@@ -203,8 +203,9 @@ const overlay: CSSProperties = {
   zIndex: 50,
 };
 const modal: CSSProperties = {
-  background: '#1a1c22',
-  border: '1px solid #2a2e38',
+  background: '#ffffff',
+  color: '#111827',
+  border: '1px solid #e5e7eb',
   borderRadius: 10,
   padding: 24,
   width: 720,
@@ -214,11 +215,11 @@ const modal: CSSProperties = {
 const row: CSSProperties = { display: 'flex', justifyContent: 'space-between', padding: '6px 0', gap: 8 };
 const btn: CSSProperties = {
   padding: '6px 12px',
-  backgroundColor: '#3b82f6',
+  backgroundColor: '#0d9488',
   color: '#fff',
   border: 'none',
   borderRadius: 6,
   cursor: 'pointer',
   marginTop: 8,
 };
-const btnGhost: CSSProperties = { ...btn, backgroundColor: '#2a2e38' };
+const btnGhost: CSSProperties = { ...btn, backgroundColor: '#f3f4f6', color: '#111827' };

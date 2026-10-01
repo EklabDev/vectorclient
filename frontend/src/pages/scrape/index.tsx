@@ -27,7 +27,8 @@ export function ScrapeSourcesPage() {
   const [schemas, setSchemas] = useState<SchemaOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
     seedUrl: '',
@@ -69,7 +70,28 @@ export function ScrapeSourcesPage() {
     return () => clearInterval(timer);
   }, [crawling]);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const emptyForm = { name: '', seedUrl: '', schemaId: '', allowedDomains: '', maxDepth: 2, maxPages: 50 };
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowForm(true);
+  };
+
+  const openEdit = (source: ScrapeSource) => {
+    setEditingId(source.id);
+    setForm({
+      name: source.name,
+      seedUrl: source.seedUrl,
+      schemaId: source.schemaId || '',
+      allowedDomains: source.allowedDomains.join(', '),
+      maxDepth: source.maxDepth,
+      maxPages: source.maxPages,
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setError('');
@@ -77,16 +99,22 @@ export function ScrapeSourcesPage() {
         .split(',')
         .map((d) => d.trim())
         .filter(Boolean);
-      await ApiClient.createScrapeSource({
+      const payload = {
         name: form.name,
         seedUrl: form.seedUrl,
         schemaId: form.schemaId || null,
         allowedDomains: domains,
         maxDepth: form.maxDepth,
         maxPages: form.maxPages,
-      });
-      setShowCreate(false);
-      setForm({ name: '', seedUrl: '', schemaId: '', allowedDomains: '', maxDepth: 2, maxPages: 50 });
+      };
+      if (editingId) {
+        await ApiClient.updateScrapeSource(editingId, payload);
+      } else {
+        await ApiClient.createScrapeSource(payload);
+      }
+      setShowForm(false);
+      setEditingId(null);
+      setForm(emptyForm);
       await load();
     } catch (err) {
       setError((err as Error).message);
@@ -124,16 +152,16 @@ export function ScrapeSourcesPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 'bold', margin: 0, color: '#fff' }}>Scrape Sources</h1>
-          <p style={{ color: '#a1a1aa', margin: '8px 0 0' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 'bold', margin: 0, color: '#111827' }}>Scrape Sources</h1>
+          <p style={{ color: '#111827', margin: '8px 0 0' }}>
             Crawl client websites into ArcadeDB (vectors + graph) for the native agent.
           </p>
         </div>
         <button
-          onClick={() => setShowCreate(true)}
+          onClick={openCreate}
           style={{
             padding: '8px 16px',
-            backgroundColor: '#3b82f6',
+            backgroundColor: '#0d9488',
             color: '#fff',
             border: 'none',
             borderRadius: 6,
@@ -145,12 +173,12 @@ export function ScrapeSourcesPage() {
       </div>
 
       {error && (
-        <div style={{ padding: 12, backgroundColor: '#7f1d1d', color: '#fca5a5', borderRadius: 6, marginBottom: 16 }}>
+        <div style={{ padding: 12, backgroundColor: '#fef2f2', color: '#b91c1c', borderRadius: 6, marginBottom: 16 }}>
           {error}
         </div>
       )}
 
-      {showCreate && (
+      {showForm && (
         <div
           style={{
             position: 'fixed',
@@ -163,20 +191,20 @@ export function ScrapeSourcesPage() {
           }}
         >
           <form
-            onSubmit={handleCreate}
+            onSubmit={handleSubmit}
             style={{
-              backgroundColor: '#27272a',
+              backgroundColor: '#ffffff',
               padding: 24,
               borderRadius: 8,
               width: '90%',
               maxWidth: 520,
-              border: '1px solid #3f3f46',
+              border: '1px solid #e5e7eb',
             }}
           >
-            <h2 style={{ marginTop: 0, color: '#fff' }}>New scrape source</h2>
+            <h2 style={{ marginTop: 0, color: '#111827' }}>{editingId ? 'Edit scrape source' : 'New scrape source'}</h2>
             {(['name', 'seedUrl', 'allowedDomains'] as const).map((field) => (
               <div key={field} style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', color: '#a1a1aa', marginBottom: 6 }}>
+                <label style={{ display: 'block', color: '#111827', marginBottom: 6 }}>
                   {field === 'allowedDomains' ? 'Allowed domains (comma-separated)' : field === 'seedUrl' ? 'Seed URL' : 'Name'}
                 </label>
                 <input
@@ -187,27 +215,27 @@ export function ScrapeSourcesPage() {
                   style={{
                     width: '100%',
                     padding: 8,
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: 6,
-                    color: '#fff',
+                    color: '#111827',
                   }}
                   placeholder={field === 'seedUrl' ? 'https://example.com' : ''}
                 />
               </div>
             ))}
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', color: '#a1a1aa', marginBottom: 6 }}>Link schema (optional)</label>
+              <label style={{ display: 'block', color: '#111827', marginBottom: 6 }}>Link schema (optional)</label>
               <select
                 value={form.schemaId}
                 onChange={(e) => setForm({ ...form, schemaId: e.target.value })}
                 style={{
                   width: '100%',
                   padding: 8,
-                  backgroundColor: '#18181b',
-                  border: '1px solid #3f3f46',
+                  backgroundColor: '#f9fafb',
+                  border: '1px solid #e5e7eb',
                   borderRadius: 6,
-                  color: '#fff',
+                  color: '#111827',
                 }}
               >
                 <option value="">None</option>
@@ -220,7 +248,7 @@ export function ScrapeSourcesPage() {
             </div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
               <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', color: '#a1a1aa', marginBottom: 6 }}>Max depth</label>
+                <label style={{ display: 'block', color: '#111827', marginBottom: 6 }}>Max depth</label>
                 <input
                   type="number"
                   min={0}
@@ -230,15 +258,15 @@ export function ScrapeSourcesPage() {
                   style={{
                     width: '100%',
                     padding: 8,
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: 6,
-                    color: '#fff',
+                    color: '#111827',
                   }}
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', color: '#a1a1aa', marginBottom: 6 }}>Max pages</label>
+                <label style={{ display: 'block', color: '#111827', marginBottom: 6 }}>Max pages</label>
                 <input
                   type="number"
                   min={1}
@@ -248,20 +276,20 @@ export function ScrapeSourcesPage() {
                   style={{
                     width: '100%',
                     padding: 8,
-                    backgroundColor: '#18181b',
-                    border: '1px solid #3f3f46',
+                    backgroundColor: '#f9fafb',
+                    border: '1px solid #e5e7eb',
                     borderRadius: 6,
-                    color: '#fff',
+                    color: '#111827',
                   }}
                 />
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button type="button" onClick={() => setShowCreate(false)} style={{ padding: '8px 12px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: 6 }}>
+              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} style={{ padding: '8px 12px', background: '#e5e7eb', color: '#111827', border: 'none', borderRadius: 6 }}>
                 Cancel
               </button>
               <button type="submit" style={{ padding: '8px 12px', background: '#0d9488', color: '#fff', border: 'none', borderRadius: 6 }}>
-                Create
+                {editingId ? 'Update' : 'Create'}
               </button>
             </div>
           </form>
@@ -269,16 +297,16 @@ export function ScrapeSourcesPage() {
       )}
 
       {loading ? (
-        <p style={{ color: '#a1a1aa' }}>Loading…</p>
+        <p style={{ color: '#111827' }}>Loading…</p>
       ) : sources.length === 0 ? (
-        <p style={{ color: '#a1a1aa' }}>No scrape sources yet.</p>
+        <p style={{ color: '#111827' }}>No scrape sources yet.</p>
       ) : (
-        <div style={{ backgroundColor: '#27272a', borderRadius: 8, border: '1px solid #3f3f46', overflow: 'hidden' }}>
+        <div style={{ backgroundColor: '#ffffff', borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid #3f3f46' }}>
+              <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
                 {['Name', 'Seed URL', 'Status', 'Last crawl', 'Source ID', 'Actions'].map((h) => (
-                  <th key={h} style={{ padding: 12, textAlign: 'left', color: '#fff' }}>
+                  <th key={h} style={{ padding: 12, textAlign: 'left', color: '#111827' }}>
                     {h}
                   </th>
                 ))}
@@ -286,27 +314,41 @@ export function ScrapeSourcesPage() {
             </thead>
             <tbody>
               {sources.map((s) => (
-                <tr key={s.id} style={{ borderBottom: '1px solid #3f3f46' }}>
-                  <td style={{ padding: 12, color: '#fff' }}>{s.name}</td>
-                  <td style={{ padding: 12, color: '#a1a1aa', fontFamily: 'monospace', fontSize: 12 }}>{s.seedUrl}</td>
-                  <td style={{ padding: 12, color: s.status === 'failed' ? '#fca5a5' : '#a1a1aa' }}>
+                <tr key={s.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={{ padding: 12, color: '#111827' }}>{s.name}</td>
+                  <td style={{ padding: 12, color: '#111827', fontFamily: 'monospace', fontSize: 12 }}>{s.seedUrl}</td>
+                  <td style={{ padding: 12, color: s.status === 'failed' ? '#b91c1c' : '#111827' }}>
                     {s.status === 'running' ? 'Crawling…' : s.status}
                     {s.status === 'failed' && s.lastError ? ` — ${s.lastError}` : ''}
                   </td>
-                  <td style={{ padding: 12, color: '#a1a1aa' }}>
+                  <td style={{ padding: 12, color: '#111827' }}>
                     {s.lastCrawledAt ? new Date(s.lastCrawledAt).toLocaleString() : '—'}
                   </td>
-                  <td style={{ padding: 12, color: '#a1a1aa', fontFamily: 'monospace', fontSize: 12 }}>
+                  <td style={{ padding: 12, color: '#111827', fontFamily: 'monospace', fontSize: 12 }}>
                     {s.id}
                   </td>
                   <td style={{ padding: 12 }}>
+                    <button
+                      onClick={() => openEdit(s)}
+                      style={{
+                        marginRight: 8,
+                        padding: '6px 10px',
+                        backgroundColor: '#0d9488',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Edit
+                    </button>
                     <button
                       onClick={() => setViewingId(s.id)}
                       style={{
                         marginRight: 8,
                         padding: '6px 10px',
-                        backgroundColor: '#3f3f46',
-                        color: '#fff',
+                        backgroundColor: '#e5e7eb',
+                        color: '#111827',
                         border: 'none',
                         borderRadius: 6,
                         cursor: 'pointer',
@@ -334,7 +376,7 @@ export function ScrapeSourcesPage() {
                       disabled={busyId === s.id}
                       style={{
                         padding: '6px 10px',
-                        backgroundColor: '#7f1d1d',
+                        backgroundColor: '#b91c1c',
                         color: '#fff',
                         border: 'none',
                         borderRadius: 6,

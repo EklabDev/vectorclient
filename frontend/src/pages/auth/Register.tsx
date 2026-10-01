@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
-
+import { BrandLogo } from '../../components/Common/BrandLogo';
 export function RegisterPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -35,18 +35,21 @@ export function RegisterPage() {
       justifyContent: 'center', 
       alignItems: 'center', 
       height: '100vh', 
-      backgroundColor: '#0f172a' 
+      backgroundColor: '#f7f6f3' 
     }}>
       <div style={{ 
         width: '100%', 
         maxWidth: '400px', 
         padding: '40px', 
-        backgroundColor: '#1e293b', 
+        backgroundColor: '#ffffff',
         borderRadius: '8px', 
-        border: '1px solid #334155',
-        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.3)' 
+        border: '1px solid #e5e7eb',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)' 
       }}>
-        <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#fff' }}>Register</h1>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+          <BrandLogo width={168} />
+        </div>
+        <h1 style={{ textAlign: 'center', margin: '0 0 30px', color: '#111827', fontSize: 18, fontWeight: 600 }}>Register</h1>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input
             type="text"
@@ -57,9 +60,9 @@ export function RegisterPage() {
             style={{
               padding: '10px',
               borderRadius: '6px',
-              border: '1px solid #334155',
-              backgroundColor: '#0f172a',
-              color: '#fff',
+              border: '1px solid #e5e7eb',
+              backgroundColor: '#f7f6f3',
+              color: '#111827',
               fontSize: '14px'
             }}
           />
@@ -72,9 +75,9 @@ export function RegisterPage() {
             style={{
               padding: '10px',
               borderRadius: '6px',
-              border: '1px solid #334155',
-              backgroundColor: '#0f172a',
-              color: '#fff',
+              border: '1px solid #e5e7eb',
+              backgroundColor: '#f7f6f3',
+              color: '#111827',
               fontSize: '14px'
             }}
           />
@@ -87,9 +90,9 @@ export function RegisterPage() {
             style={{
               padding: '10px',
               borderRadius: '6px',
-              border: '1px solid #334155',
-              backgroundColor: '#0f172a',
-              color: '#fff',
+              border: '1px solid #e5e7eb',
+              backgroundColor: '#f7f6f3',
+              color: '#111827',
               fontSize: '14px'
             }}
           />
@@ -102,21 +105,21 @@ export function RegisterPage() {
             style={{
               padding: '10px',
               borderRadius: '6px',
-              border: '1px solid #334155',
-              backgroundColor: '#0f172a',
-              color: '#fff',
+              border: '1px solid #e5e7eb',
+              backgroundColor: '#f7f6f3',
+              color: '#111827',
               fontSize: '14px'
             }}
           />
-          {error && <p style={{ color: '#fca5a5', margin: 0, fontSize: '14px' }}>{error}</p>}
+          {error && <p style={{ color: '#b91c1c', margin: 0, fontSize: '14px' }}>{error}</p>}
           <button 
             type="submit" 
             disabled={loading}
             style={{
               padding: '10px',
               cursor: loading ? 'not-allowed' : 'pointer',
-              backgroundColor: loading ? '#334155' : '#3b82f6',
-              color: '#fff',
+              backgroundColor: loading ? '#e5e7eb' : '#0d9488',
+              color: loading ? '#111827' : '#ffffff',
               border: 'none',
               borderRadius: '6px',
               fontWeight: '500'
@@ -126,8 +129,8 @@ export function RegisterPage() {
           </button>
         </form>
          <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <p style={{ color: '#a1a1aa' }}>
-            Already have an account? <Link to="/login" style={{ color: '#14b8a6' }}>Login</Link>
+          <p style={{ color: '#111827' }}>
+            Already have an account? <Link to="/login" style={{ color: '#0d9488' }}>Login</Link>
           </p>
         </div>
       </div>

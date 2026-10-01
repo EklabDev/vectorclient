@@ -89,20 +89,20 @@ export function ScrapedContent({
     >
       <div
         style={{
-          backgroundColor: '#27272a',
+          backgroundColor: '#ffffff',
           padding: 24,
           borderRadius: 8,
           width: '90%',
           maxWidth: 860,
           maxHeight: '85vh',
           overflow: 'auto',
-          border: '1px solid #3f3f46',
+          border: '1px solid #e5e7eb',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
-            <h2 style={{ margin: 0, color: '#fff' }}>{sourceName}</h2>
-            <p style={{ margin: '6px 0 0', color: '#a1a1aa' }}>
+            <h2 style={{ margin: 0, color: '#111827' }}>{sourceName}</h2>
+            <p style={{ margin: '6px 0 0', color: '#111827' }}>
               {loading
                 ? 'Loading scraped pages…'
                 : pageCount > 0
@@ -114,31 +114,31 @@ export function ScrapedContent({
           <button
             type="button"
             onClick={onClose}
-            style={{ padding: '8px 12px', background: '#3f3f46', color: '#fff', border: 'none', borderRadius: 6 }}
+            style={{ padding: '8px 12px', background: '#e5e7eb', color: '#111827', border: 'none', borderRadius: 6 }}
           >
             Close
           </button>
         </div>
 
         {error && (
-          <div style={{ padding: 12, backgroundColor: '#7f1d1d', color: '#fca5a5', borderRadius: 6, marginBottom: 16 }}>
+          <div style={{ padding: 12, backgroundColor: '#fef2f2', color: '#b91c1c', borderRadius: 6, marginBottom: 16 }}>
             {error}
           </div>
         )}
         {truncated && (
           <p style={{ color: '#fbbf24', marginTop: 0 }}>Showing the first 500 chunks from this source.</p>
         )}
-        {!loading && pages.length === 0 && <p style={{ color: '#a1a1aa' }}>Nothing scraped yet.</p>}
+        {!loading && pages.length === 0 && <p style={{ color: '#111827' }}>Nothing scraped yet.</p>}
 
         {pages.map((page) => (
-          <div key={page.url} style={{ borderTop: '1px solid #3f3f46', padding: '12px 0' }}>
+          <div key={page.url} style={{ borderTop: '1px solid #e5e7eb', padding: '12px 0' }}>
             <button
               type="button"
               onClick={() => setOpenUrl((current) => (current === page.url ? null : page.url))}
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#93c5fd',
+                color: '#0f766e',
                 padding: 0,
                 cursor: 'pointer',
                 textAlign: 'left',
@@ -148,12 +148,12 @@ export function ScrapedContent({
             >
               {page.url}
             </button>
-            <div style={{ color: '#71717a', fontSize: 12, marginTop: 4 }}>{page.chunks.length} chunks</div>
+            <div style={{ color: '#111827', fontSize: 12, marginTop: 4 }}>{page.chunks.length} chunks</div>
             {openUrl === page.url &&
               page.chunks.map((chunk) => (
                 <div key={chunk.id} style={{ marginTop: 10, color: '#e4e4e7', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                   {(chunk.category || chunk.subcategory) && (
-                    <div style={{ color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>
+                    <div style={{ color: '#111827', fontSize: 12, marginBottom: 4 }}>
                       {[chunk.category, chunk.subcategory].filter(Boolean).join(' · ')}
                     </div>
                   )}

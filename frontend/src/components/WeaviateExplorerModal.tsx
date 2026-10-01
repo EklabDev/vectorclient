@@ -196,9 +196,9 @@ export function WeaviateExplorerModal({
     >
       <div
         style={{
-          backgroundColor: '#27272a',
+          backgroundColor: '#ffffff',
           borderRadius: 8,
-          border: '1px solid #3f3f46',
+          border: '1px solid #e5e7eb',
           width: 'min(1100px, 100%)',
           maxHeight: '92vh',
           display: 'flex',
@@ -206,25 +206,25 @@ export function WeaviateExplorerModal({
           overflow: 'hidden',
         }}
       >
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #3f3f46', flexShrink: 0 }}>
-          <h2 style={{ margin: 0, color: '#fff', fontSize: 18 }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+          <h2 style={{ margin: 0, color: '#111827', fontSize: 18 }}>
             {isEdit ? 'Edit vectors' : 'View vectors'} — {schemaName}
           </h2>
-          <p style={{ margin: '8px 0 0', fontSize: 12, color: '#a1a1aa' }}>
-            ArcadeDB chunks for schema <code style={{ color: '#93c5fd' }}>{schemaId}</code>
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: '#111827' }}>
+            ArcadeDB chunks for schema <code style={{ color: '#0f766e' }}>{schemaId}</code>
           </p>
         </div>
 
         <div style={{ padding: 16, overflowY: 'auto', flex: 1 }}>
           {error && (
-            <div style={{ padding: 12, backgroundColor: '#7f1d1d', color: '#fecaca', borderRadius: 6, marginBottom: 12 }}>
+            <div style={{ padding: 12, backgroundColor: '#fef2f2', color: '#b91c1c', borderRadius: 6, marginBottom: 12 }}>
               {error}
             </div>
           )}
 
           {isEdit && (
-            <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#18181b', borderRadius: 6 }}>
-              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 6 }}>System prompt (schema)</label>
+            <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f9fafb', borderRadius: 6 }}>
+              <label style={{ display: 'block', color: '#111827', fontSize: 12, marginBottom: 6 }}>System prompt (schema)</label>
               <textarea
                 value={systemPromptDraft}
                 onChange={(e) => setSystemPromptDraft(e.target.value)}
@@ -232,10 +232,10 @@ export function WeaviateExplorerModal({
                 style={{
                   width: '100%',
                   padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: 6,
-                  color: '#fff',
+                  color: '#111827',
                   fontSize: 13,
                   marginBottom: 8,
                 }}
@@ -245,7 +245,7 @@ export function WeaviateExplorerModal({
                 onClick={() => void saveSystemPrompt()}
                 style={{
                   padding: '6px 12px',
-                  backgroundColor: '#6366f1',
+                  backgroundColor: '#0f766e',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 6,
@@ -267,10 +267,10 @@ export function WeaviateExplorerModal({
               style={{
                 flex: '1 1 200px',
                 padding: 8,
-                backgroundColor: '#18181b',
-                border: '1px solid #3f3f46',
+                backgroundColor: '#f9fafb',
+                border: '1px solid #e5e7eb',
                 borderRadius: 6,
-                color: '#fff',
+                color: '#111827',
               }}
             />
             <div style={{ display: 'flex', gap: 4 }}>
@@ -279,8 +279,8 @@ export function WeaviateExplorerModal({
                 onClick={() => setSearchMode('bm25')}
                 style={{
                   padding: '6px 10px',
-                  backgroundColor: searchMode === 'bm25' ? '#3b82f6' : '#3f3f46',
-                  color: '#fff',
+                  backgroundColor: searchMode === 'bm25' ? '#0d9488' : '#e5e7eb',
+                  color: searchMode === 'bm25' ? '#ffffff' : '#111827',
                   border: 'none',
                   borderRadius: 6,
                   cursor: 'pointer',
@@ -294,8 +294,8 @@ export function WeaviateExplorerModal({
                 onClick={() => setSearchMode('vector')}
                 style={{
                   padding: '6px 10px',
-                  backgroundColor: searchMode === 'vector' ? '#3b82f6' : '#3f3f46',
-                  color: '#fff',
+                  backgroundColor: searchMode === 'vector' ? '#0d9488' : '#e5e7eb',
+                  color: searchMode === 'vector' ? '#ffffff' : '#111827',
                   border: 'none',
                   borderRadius: 6,
                   cursor: 'pointer',
@@ -326,7 +326,7 @@ export function WeaviateExplorerModal({
               style={{
                 padding: '8px 14px',
                 backgroundColor: '#52525b',
-                color: '#fff',
+                color: '#111827',
                 border: 'none',
                 borderRadius: 6,
                 cursor: 'pointer',
@@ -341,17 +341,17 @@ export function WeaviateExplorerModal({
               style={{
                 marginBottom: 16,
                 padding: '12px 14px 14px',
-                border: '1px solid #3f3f46',
+                border: '1px solid #e5e7eb',
                 borderRadius: 8,
-                backgroundColor: '#18181b',
+                backgroundColor: '#f9fafb',
               }}
             >
               <legend style={{ color: '#e4e4e7', fontSize: 14, padding: '0 6px' }}>Create new chunk</legend>
-              <p style={{ fontSize: 11, color: '#71717a', margin: '0 0 12px' }}>
+              <p style={{ fontSize: 11, color: '#111827', margin: '0 0 12px' }}>
                 Chunk index is assigned automatically (max existing index + 1). Schema id, name, and version are set from
                 this schema.
               </p>
-              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Content *</label>
+              <label style={{ display: 'block', color: '#111827', fontSize: 12, marginBottom: 4 }}>Content *</label>
               <textarea
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
@@ -359,16 +359,16 @@ export function WeaviateExplorerModal({
                 style={{
                   width: '100%',
                   padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: 6,
-                  color: '#fff',
+                  color: '#111827',
                   fontSize: 13,
                   marginBottom: 10,
                   boxSizing: 'border-box',
                 }}
               />
-              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>
+              <label style={{ display: 'block', color: '#111827', fontSize: 12, marginBottom: 4 }}>
                 Original reference
               </label>
               <input
@@ -378,16 +378,16 @@ export function WeaviateExplorerModal({
                 style={{
                   width: '100%',
                   padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: 6,
-                  color: '#fff',
+                  color: '#111827',
                   fontSize: 13,
                   marginBottom: 10,
                   boxSizing: 'border-box',
                 }}
               />
-              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Category</label>
+              <label style={{ display: 'block', color: '#111827', fontSize: 12, marginBottom: 4 }}>Category</label>
               <input
                 type="text"
                 value={newCategory}
@@ -396,16 +396,16 @@ export function WeaviateExplorerModal({
                 style={{
                   width: '100%',
                   padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: 6,
-                  color: '#fff',
+                  color: '#111827',
                   fontSize: 13,
                   marginBottom: 10,
                   boxSizing: 'border-box',
                 }}
               />
-              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Subcategory</label>
+              <label style={{ display: 'block', color: '#111827', fontSize: 12, marginBottom: 4 }}>Subcategory</label>
               <input
                 type="text"
                 value={newSubcategory}
@@ -414,10 +414,10 @@ export function WeaviateExplorerModal({
                 style={{
                   width: '100%',
                   padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: 6,
-                  color: '#fff',
+                  color: '#111827',
                   fontSize: 13,
                   marginBottom: 10,
                   boxSizing: 'border-box',
@@ -428,7 +428,7 @@ export function WeaviateExplorerModal({
                 onClick={() => void createChunk()}
                 style={{
                   padding: '6px 12px',
-                  backgroundColor: '#7c3aed',
+                  backgroundColor: '#0f766e',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 6,
@@ -450,30 +450,30 @@ export function WeaviateExplorerModal({
           )}
 
           {loading ? (
-            <p style={{ color: '#a1a1aa' }}>Loading objects…</p>
+            <p style={{ color: '#111827' }}>Loading objects…</p>
           ) : (
-            <div style={{ overflowX: 'auto', maxHeight: '45vh', border: '1px solid #3f3f46', borderRadius: 6 }}>
+            <div style={{ overflowX: 'auto', maxHeight: '45vh', border: '1px solid #e5e7eb', borderRadius: 6 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#18181b', zIndex: 1 }}>
+                <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f9fafb', zIndex: 1 }}>
                   <tr>
-                    <th style={{ textAlign: 'left', padding: 8, color: '#a1a1aa' }}>Idx</th>
-                    <th style={{ textAlign: 'left', padding: 8, color: '#a1a1aa' }}>Content (preview)</th>
-                    <th style={{ textAlign: 'left', padding: 8, color: '#a1a1aa' }}>Cat / Sub</th>
-                    {isEdit && <th style={{ padding: 8, color: '#a1a1aa' }}>Actions</th>}
+                    <th style={{ textAlign: 'left', padding: 8, color: '#111827' }}>Idx</th>
+                    <th style={{ textAlign: 'left', padding: 8, color: '#111827' }}>Content (preview)</th>
+                    <th style={{ textAlign: 'left', padding: 8, color: '#111827' }}>Cat / Sub</th>
+                    {isEdit && <th style={{ padding: 8, color: '#111827' }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {displayRows.map((o) => (
-                    <tr key={o.id} style={{ borderTop: '1px solid #3f3f46' }}>
+                    <tr key={o.id} style={{ borderTop: '1px solid #e5e7eb' }}>
                       <td style={{ padding: 8, color: '#e4e4e7', verticalAlign: 'top' }}>{o.chunkIndex ?? '—'}</td>
-                      <td style={{ padding: 8, color: '#d4d4d8', maxWidth: 420, wordBreak: 'break-word' }}>
+                      <td style={{ padding: 8, color: '#111827', maxWidth: 420, wordBreak: 'break-word' }}>
                         {(o.content || '').slice(0, 200)}
                         {(o.content?.length || 0) > 200 ? '…' : ''}
                         {o.score != null && (
-                          <span style={{ display: 'block', fontSize: 10, color: '#71717a' }}>score: {String(o.score)}</span>
+                          <span style={{ display: 'block', fontSize: 10, color: '#111827' }}>score: {String(o.score)}</span>
                         )}
                       </td>
-                      <td style={{ padding: 8, color: '#a1a1aa', verticalAlign: 'top' }}>
+                      <td style={{ padding: 8, color: '#111827', verticalAlign: 'top' }}>
                         {[o.category, o.subcategory].filter(Boolean).join(' / ') || '—'}
                       </td>
                       {isEdit && (
@@ -490,7 +490,7 @@ export function WeaviateExplorerModal({
                               marginRight: 6,
                               padding: '4px 8px',
                               backgroundColor: '#2563eb',
-                              color: '#fff',
+                              color: '#111827',
                               border: 'none',
                               borderRadius: 4,
                               cursor: 'pointer',
@@ -505,7 +505,7 @@ export function WeaviateExplorerModal({
                             style={{
                               padding: '4px 8px',
                               backgroundColor: '#991b1b',
-                              color: '#fff',
+                              color: '#111827',
                               border: 'none',
                               borderRadius: 4,
                               cursor: 'pointer',
@@ -520,17 +520,17 @@ export function WeaviateExplorerModal({
                   ))}
                 </tbody>
               </table>
-              {displayRows.length === 0 && <p style={{ padding: 16, color: '#71717a' }}>No objects.</p>}
+              {displayRows.length === 0 && <p style={{ padding: 16, color: '#111827' }}>No objects.</p>}
             </div>
           )}
 
           {isEdit && selected && (
-            <div style={{ marginTop: 16, padding: 12, backgroundColor: '#18181b', borderRadius: 6 }}>
-              <div style={{ fontSize: 12, color: '#a1a1aa', marginBottom: 10 }}>
-                Edit chunk <code style={{ color: '#93c5fd' }}>{selected.id}</code> — updates content, category, and
+            <div style={{ marginTop: 16, padding: 12, backgroundColor: '#f9fafb', borderRadius: 6 }}>
+              <div style={{ fontSize: 12, color: '#111827', marginBottom: 10 }}>
+                Edit chunk <code style={{ color: '#0f766e' }}>{selected.id}</code> — updates content, category, and
                 subcategory (merge). Chunk index is not changed.
               </div>
-              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Content *</label>
+              <label style={{ display: 'block', color: '#111827', fontSize: 12, marginBottom: 4 }}>Content *</label>
               <textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -538,16 +538,16 @@ export function WeaviateExplorerModal({
                 style={{
                   width: '100%',
                   padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: 6,
-                  color: '#fff',
+                  color: '#111827',
                   fontSize: 13,
                   marginBottom: 10,
                   boxSizing: 'border-box',
                 }}
               />
-              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Category</label>
+              <label style={{ display: 'block', color: '#111827', fontSize: 12, marginBottom: 4 }}>Category</label>
               <input
                 type="text"
                 value={editCategory}
@@ -556,16 +556,16 @@ export function WeaviateExplorerModal({
                 style={{
                   width: '100%',
                   padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: 6,
-                  color: '#fff',
+                  color: '#111827',
                   fontSize: 13,
                   marginBottom: 10,
                   boxSizing: 'border-box',
                 }}
               />
-              <label style={{ display: 'block', color: '#a1a1aa', fontSize: 12, marginBottom: 4 }}>Subcategory</label>
+              <label style={{ display: 'block', color: '#111827', fontSize: 12, marginBottom: 4 }}>Subcategory</label>
               <input
                 type="text"
                 value={editSubcategory}
@@ -574,10 +574,10 @@ export function WeaviateExplorerModal({
                 style={{
                   width: '100%',
                   padding: 8,
-                  backgroundColor: '#27272a',
-                  border: '1px solid #3f3f46',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e5e7eb',
                   borderRadius: 6,
-                  color: '#fff',
+                  color: '#111827',
                   fontSize: 13,
                   marginBottom: 10,
                   boxSizing: 'border-box',
@@ -608,7 +608,7 @@ export function WeaviateExplorerModal({
                   style={{
                     padding: '6px 12px',
                     backgroundColor: '#52525b',
-                    color: '#fff',
+                    color: '#111827',
                     border: 'none',
                     borderRadius: 6,
                     cursor: 'pointer',
@@ -621,15 +621,15 @@ export function WeaviateExplorerModal({
           )}
         </div>
 
-        <div style={{ padding: 12, borderTop: '1px solid #3f3f46', flexShrink: 0 }}>
+        <div style={{ padding: 12, borderTop: '1px solid #e5e7eb', flexShrink: 0 }}>
           <button
             type="button"
             onClick={onClose}
             style={{
               width: '100%',
               padding: 10,
-              backgroundColor: '#3f3f46',
-              color: '#fff',
+              backgroundColor: '#e5e7eb',
+              color: '#111827',
               border: 'none',
               borderRadius: 6,
               cursor: 'pointer',
