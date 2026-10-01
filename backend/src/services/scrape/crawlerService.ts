@@ -120,18 +120,57 @@ export class CrawlerService {
       const contentHash = createHash('sha256').update(html).digest('hex');
       const prev = await RedisService.get(options.userId, hashKey);
       const { title, text, links } = extractText(html);
-      if (!text || text.length < 40) continue;
+
+      let pageTitle = title;
+      let pageText = text;
+      const pageLinks = [...links];
+
+      // Fallback for Client-Side Rendered (CSR / SPA) sites (e.g. Vite / React apps with empty <div id="root">)
+      if (!pageText || pageText.length < 40) {
+        try {
+          const jinaRes = await fetch(`https://r.jina.ai/${item.url}`, {
+            headers: {
+              'Accept': 'text/plain',
+              'X-Return-Format': 'markdown',
+              'User-Agent': 'VectorClientBot/1.0',
+            },
+            signal: AbortSignal.timeout(20000),
+          });
+          if (jinaRes.ok) {
+            const jinaText = await jinaRes.text();
+            if (jinaText && jinaText.length >= 40) {
+              pageText = jinaText;
+              if (!pageTitle) {
+                const titleMatch = jinaText.match(/Title:\s*(.+)/);
+                if (titleMatch) pageTitle = titleMatch[1].trim();
+              }
+              const linkMatches = jinaText.matchAll(/\[.*?\]\((https?:\/\/[^\s\)]+)\)/g);
+              for (const m of linkMatches) {
+                pageLinks.push(m[1]);
+              }
+            }
+          }
+        } catch {
+          // ignore fallback error
+        }
+      }
+
+      if (!pageText || pageText.length < 40) continue;
+
+      const formattedText = pageText.startsWith('#')
+        ? pageText.slice(0, 100_000)
+        : `# ${pageTitle}\n\n${pageText}`.slice(0, 100_000);
 
       if (prev !== contentHash) {
-        pages.push({ url: item.url, text: `# ${title}\n\n${text}`.slice(0, 100_000), title });
+        pages.push({ url: item.url, text: formattedText, title: pageTitle });
         await RedisService.set(options.userId, hashKey, contentHash, 60 * 60 * 24 * 7);
       } else {
         // Still count as crawled for link discovery, but skip re-index
-        pages.push({ url: item.url, text: `# ${title}\n\n${text}`.slice(0, 100_000), title });
+        pages.push({ url: item.url, text: formattedText, title: pageTitle });
       }
 
       if (item.depth >= options.maxDepth) continue;
-      for (const href of links) {
+      for (const href of pageLinks) {
         const next = normalizeUrl(href, item.url);
         if (!next || seen.has(next)) continue;
         if (!allowed.has(domainOf(next))) continue;

@@ -8,8 +8,6 @@ import { EndpointsPage } from './pages/endpoints';
 import { SchemasPage } from './pages/schemas';
 import { TokensPage } from './pages/tokens';
 import { ScrapeSourcesPage } from './pages/scrape';
-import { QueryPage } from './pages/query';
-import { DatabasePage } from './pages/database';
 
 function App() {
   return (
@@ -23,8 +21,6 @@ function App() {
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/query" element={<QueryPage />} />
-          <Route path="/database" element={<DatabasePage />} />
           <Route path="/endpoints" element={<EndpointsPage />} />
           <Route path="/schemas" element={<SchemasPage />} />
           <Route path="/scrape" element={<ScrapeSourcesPage />} />

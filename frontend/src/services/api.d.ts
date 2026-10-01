@@ -86,6 +86,16 @@ export declare class ApiClient {
     static deleteScrapeSource(id: string): Promise<unknown>;
     static triggerScrapeCrawl(id: string): Promise<unknown>;
     static getScrapeJobs(id: string): Promise<unknown>;
+    static getScrapeChunks(id: string): Promise<{
+        objects: Array<{
+            id: string;
+            content?: string;
+            originalReference?: string;
+            category?: string;
+            subcategory?: string;
+        }>;
+        truncated: boolean;
+    }>;
     static studioQuery(body: {
         language: 'sql' | 'cypher' | 'gremlin';
         command: string;
@@ -111,5 +121,6 @@ export declare class ApiClient {
     static putCrmSchema(endpointId: string, jsonSchema: Record<string, unknown>): Promise<unknown>;
     static getCrmWorkflows(endpointId: string): Promise<unknown>;
     static createCrmWorkflow(endpointId: string, data: Record<string, unknown>): Promise<unknown>;
+    static updateCrmWorkflow(endpointId: string, workflowId: string, data: Record<string, unknown>): Promise<unknown>;
     static deleteCrmWorkflow(endpointId: string, workflowId: string): Promise<unknown>;
 }
