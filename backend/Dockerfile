@@ -1,4 +1,4 @@
-FROM --platform=linux/arm64/v8 node:20-alpine AS builder
+FROM --platform=linux/arm64/v8 node:26.12.1-alpine AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ RUN npm run build
 # Prune dev dependencies to get production-only node_modules
 RUN npm prune --production
 
-FROM --platform=linux/arm64/v8 node:20-alpine
+FROM --platform=linux/arm64/v8 node:26.12.1-alpine
 
 WORKDIR /app
 

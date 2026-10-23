@@ -11,5 +11,5 @@ interface Props {
     /** Called after create/update/delete chunk so parent can refresh card counts. */
     onWeaviateMutated?: () => void;
 }
-export declare function WeaviateExplorerModal({ open, onClose, schemaId, schemaName, systemPrompt: initialSystemPrompt, mode, onSystemPromptSaved, onWeaviateMutated, }: Props): import("react/jsx-runtime").JSX.Element | null;
+export declare function WeaviateExplorerModal({ open, onClose, schemaId, schemaName, systemPrompt: initialSystemPrompt, mode, onSystemPromptSaved, onWeaviateMutated, }: Props): import("react").JSX.Element | null;
 export {};

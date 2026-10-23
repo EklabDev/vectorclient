@@ -1,4 +1,4 @@
-FROM --platform=linux/arm64/v8 node:20-alpine AS builder
+FROM --platform=linux/arm64/v8 node:26.12.1-alpine AS builder
 
 WORKDIR /app
 COPY package*.json ./
@@ -14,7 +14,7 @@ RUN npm run build
 # Install serve locally
 RUN npm install serve
 
-FROM --platform=linux/arm64/v8 node:20-alpine
+FROM --platform=linux/arm64/v8 node:26.12.1-alpine
 
 WORKDIR /app
 
