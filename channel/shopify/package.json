@@ -11,7 +11,11 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "src", "theme"],
+  "files": [
+    "dist",
+    "src",
+    "theme"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run"
@@ -21,7 +25,7 @@
   },
   "devDependencies": {
     "typescript": "^5.8.2",
-    "vitest": "^3.0.5"
+    "vitest": "^t.0.5"
   },
   "license": "MIT"
 }
