@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiClient } from '../../services/api';
 
-// Cloudflare official dummy sitekey (Always passes verification in dev/sandbox)
+// Cloudflare official dummy sitekey (always passes verification in dev/sandbox)
 const CLOUDFLARE_TEST_SITEKEY = '1x00000000000000000000AA';
 
 declare global {
   interface Window {
     __ENV__?: Record<string, string>;
     turnstile?: {
-      ready: (fn: () => void) => void;
       render: (
         container: HTMLElement | string,
         params: {
@@ -35,46 +34,37 @@ export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: Turnsti
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [activeSiteKey, setActiveSiteKey] = useState<string | null>(null);
 
-  // 1. Resolve Site Key at RUNTIME from backend API, window.__ENV__, or build-time fallback
+  // Synchronously resolve site key from window.__ENV__ (injected from docker-compose .env)
+  // or build-time Vite env, or test key
+  const [activeSiteKey, setActiveSiteKey] = useState<string>(() => {
+    const runtimeKey = window.__ENV__?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY?.trim();
+    if (runtimeKey) return runtimeKey;
+    const buildKey = (import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '').trim();
+    return buildKey || CLOUDFLARE_TEST_SITEKEY;
+  });
+
+  // Optional background sync with backend if no runtime key was injected via Docker
   useEffect(() => {
-    let isMounted = true;
-
-    async function resolveRuntimeKey() {
-      // Check window.__ENV__ if injected at container startup
-      const windowKey = window.__ENV__?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY;
-      if (windowKey?.trim()) {
-        if (isMounted) setActiveSiteKey(windowKey.trim());
-        return;
-      }
-
-      // Fetch runtime configuration from backend
-      try {
-        const config = await ApiClient.getAuthConfig();
-        if (isMounted && config.turnstileSiteKey?.trim()) {
-          setActiveSiteKey(config.turnstileSiteKey.trim());
-          return;
-        }
-      } catch (err) {
-        console.warn('Could not fetch runtime Turnstile config from server:', err);
-      }
-
-      // Fallback: build-time Vite env or Cloudflare test key
-      const buildKey = (import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '').trim();
-      if (isMounted) {
-        setActiveSiteKey(buildKey || CLOUDFLARE_TEST_SITEKEY);
-      }
+    if (window.__ENV__?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY?.trim()) {
+      return; // already have runtime key from docker-compose
     }
 
-    resolveRuntimeKey();
+    let isMounted = true;
+    ApiClient.getAuthConfig()
+      .then((config) => {
+        if (isMounted && config.turnstileSiteKey?.trim()) {
+          setActiveSiteKey(config.turnstileSiteKey.trim());
+        }
+      })
+      .catch(() => {});
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  // 2. Once runtime site key is resolved, render Turnstile widget
+  // Render widget once container and activeSiteKey are ready
   useEffect(() => {
     if (!containerRef.current || !activeSiteKey) return;
 
@@ -95,55 +85,25 @@ export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: Turnsti
             if (isMounted && onExpire) onExpire();
           },
           'error-callback': (err: unknown) => {
-            console.warn('Turnstile widget challenge error:', err);
+            console.warn('Turnstile challenge error:', err);
           },
         });
         widgetIdRef.current = id;
       } catch (err) {
         console.error('Failed to render Turnstile widget:', err);
+        if (isMounted) setLoadError('Failed to initialize verification challenge.');
       }
     };
 
-    const attachScriptAndRender = () => {
-      // If turnstile is already loaded on the page, render immediately
-      if (window.turnstile && typeof window.turnstile.render === 'function') {
-        render();
-        return;
+    if (window.turnstile && typeof window.turnstile.render === 'function') {
+      render();
+    } else {
+      // If script is still loading in <head>, listen for its load event
+      const script = document.getElementById('cf-turnstile-script');
+      if (script) {
+        script.addEventListener('load', render, { once: true });
       }
-
-      let script = document.getElementById('cf-turnstile-script') as HTMLScriptElement | null;
-      if (!script) {
-        script = document.createElement('script');
-        script.id = 'cf-turnstile-script';
-        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-        script.onload = () => {
-          if (isMounted) render();
-        };
-        script.onerror = () => {
-          if (isMounted) setLoadError('Unable to load Cloudflare Turnstile script.');
-        };
-        document.head.appendChild(script);
-      } else {
-        script.addEventListener('load', () => {
-          if (isMounted) render();
-        });
-      }
-
-      const checkInterval = setInterval(() => {
-        if (!isMounted) {
-          clearInterval(checkInterval);
-          return;
-        }
-        if (window.turnstile && typeof window.turnstile.render === 'function') {
-          clearInterval(checkInterval);
-          render();
-        }
-      }, 50);
-
-      setTimeout(() => clearInterval(checkInterval), 8000);
-    };
-
-    attachScriptAndRender();
+    }
 
     return () => {
       isMounted = false;

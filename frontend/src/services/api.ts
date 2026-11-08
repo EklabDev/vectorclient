@@ -13,10 +13,10 @@ export interface WeaviateChunkObject {
   score?: number;
 }
 
-const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
 // Ensure API URL is absolute (has protocol) so fetch() doesn't treat it as relative to current origin
 function getApiBaseUrl(): string {
+  const runtimeUrl = typeof window !== 'undefined' ? window.__ENV__?.VITE_API_URL : undefined;
+  const rawApiUrl = runtimeUrl || import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const url = rawApiUrl.trim();
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url.replace(/\/$/, ''); // strip trailing slash

@@ -55,30 +55,29 @@ export function LoginForm() {
 
   if (requires2FA) {
     return (
-      <form onSubmit={handle2FASubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+      <form id="twoFactorForm" name="twoFactorForm" onSubmit={handle2FASubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
           <div style={{ fontSize: 24, marginBottom: 6 }}>🔐</div>
           <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 6px', color: '#111827' }}>
             Two-Factor Authentication
           </h2>
-          <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+          <label htmlFor="totp" style={{ fontSize: 13, color: '#6b7280', margin: 0, display: 'block' }}>
             Enter the 6-digit code from your authenticator app or an 8-character recovery backup code.
-          </p>
+          </label>
         </div>
 
         <input
-          id="twoFactorCode"
-          name="twoFactorCode"
+          id="totp"
+          name="totp"
           type="text"
           placeholder="e.g. 123456 or a1b2-c3d4"
           value={twoFactorCode}
           onChange={(e) => setTwoFactorCode(e.target.value)}
           autoFocus
           autoComplete="one-time-code"
-          data-lpignore="true"
-          data-1p-ignore="true"
-          data-bwignore="true"
-          inputMode="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={10}
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
