@@ -105,12 +105,9 @@ export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: Turnsti
     };
 
     const attachScriptAndRender = () => {
-      if (window.turnstile) {
-        if (typeof window.turnstile.ready === 'function') {
-          window.turnstile.ready(render);
-        } else {
-          render();
-        }
+      // If turnstile is already loaded on the page, render immediately
+      if (window.turnstile && typeof window.turnstile.render === 'function') {
+        render();
         return;
       }
 
@@ -119,12 +116,17 @@ export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: Turnsti
         script = document.createElement('script');
         script.id = 'cf-turnstile-script';
         script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-        script.async = true;
-        script.defer = true;
+        script.onload = () => {
+          if (isMounted) render();
+        };
         script.onerror = () => {
           if (isMounted) setLoadError('Unable to load Cloudflare Turnstile script.');
         };
         document.head.appendChild(script);
+      } else {
+        script.addEventListener('load', () => {
+          if (isMounted) render();
+        });
       }
 
       const checkInterval = setInterval(() => {
@@ -132,13 +134,9 @@ export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: Turnsti
           clearInterval(checkInterval);
           return;
         }
-        if (window.turnstile) {
+        if (window.turnstile && typeof window.turnstile.render === 'function') {
           clearInterval(checkInterval);
-          if (typeof window.turnstile.ready === 'function') {
-            window.turnstile.ready(render);
-          } else {
-            render();
-          }
+          render();
         }
       }, 50);
 
