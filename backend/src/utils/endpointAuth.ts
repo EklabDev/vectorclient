@@ -18,9 +18,12 @@ export type AuthFailure = {
 };
 export type AuthResult = AuthSuccess | AuthFailure;
 
-function truncateBody(body: unknown): string | null {
+const SENSITIVE_KEY_REGEX = /"(password|token|secret|apiKey|authorization|bearer|access_token|refresh_token|cookie)"\s*:\s*"[^"]*"/gi;
+
+function sanitizeAndTruncateBody(body: unknown): string | null {
   if (body == null) return null;
-  const text = typeof body === 'string' ? body : JSON.stringify(body);
+  let text = typeof body === 'string' ? body : JSON.stringify(body);
+  text = text.replace(SENSITIVE_KEY_REGEX, '"$1":"[REDACTED]"');
   return text.length > 10240 ? text.substring(0, 10240) : text;
 }
 
@@ -44,8 +47,8 @@ export async function logEndpointCall(params: {
       method: params.method,
       path: params.path,
       status: params.status,
-      requestBody: truncateBody(params.requestBody),
-      responseBody: truncateBody(params.responseBody),
+      requestBody: sanitizeAndTruncateBody(params.requestBody),
+      responseBody: sanitizeAndTruncateBody(params.responseBody),
       responseTime: params.responseTime,
       ipAddress: params.ipAddress,
       userAgent: params.userAgent,

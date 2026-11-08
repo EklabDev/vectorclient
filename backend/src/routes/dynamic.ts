@@ -8,6 +8,33 @@ import {
   requestMeta,
 } from '../utils/endpointAuth';
 
+function isRestrictedHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().trim();
+  if (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '0.0.0.0' ||
+    host === '::1' ||
+    host === '169.254.169.254' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local')
+  ) {
+    return true;
+  }
+
+  // IPv4 private ranges: 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16, 127.0.0.0/8
+  const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const b0 = parseInt(ipv4[1], 10);
+    const b1 = parseInt(ipv4[2], 10);
+    if (b0 === 10 || b0 === 127 || b0 === 0) return true;
+    if (b0 === 169 && b1 === 254) return true;
+    if (b0 === 172 && b1 >= 16 && b1 <= 31) return true;
+    if (b0 === 192 && b1 === 168) return true;
+  }
+  return false;
+}
+
 export async function dynamicRoutes(app: FastifyInstance) {
   app.addHook('preHandler', rateLimitMiddleware);
 
@@ -61,8 +88,14 @@ export async function dynamicRoutes(app: FastifyInstance) {
       }
 
       const targetUrl = auth.endpoint.route;
-      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
-        const message = 'Route must be a full URL (starting with http:// or https://)';
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(targetUrl);
+        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+          throw new Error('Protocol must be http or https');
+        }
+      } catch {
+        const message = 'Route must be a valid URL (starting with http:// or https://)';
         reply.code(400).send({ message });
         await logEndpointCall({
           endpointId: auth.endpoint.id,
@@ -80,11 +113,31 @@ export async function dynamicRoutes(app: FastifyInstance) {
         return;
       }
 
+      // SSRF Protection: Disallow local/private IP addresses and metadata endpoints
+      if (isRestrictedHost(parsedUrl.hostname)) {
+        const message = 'Destination URL points to a restricted internal address or loopback';
+        reply.code(400).send({ message });
+        await logEndpointCall({
+          endpointId: auth.endpoint.id,
+          apiTokenId,
+          method: meta.method,
+          path: meta.path,
+          status: 400,
+          requestBody: request.body,
+          responseBody: null,
+          responseTime: Date.now() - startTime,
+          ipAddress: meta.ipAddress,
+          userAgent: meta.userAgent,
+          errorMessage: message,
+        });
+        return;
+      }
+
+      // Security: Strip internal authorization headers so caller credentials are NEVER leaked to external targets
       const forwardResponse = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(request.headers.authorization && { Authorization: String(request.headers.authorization) }),
           ...(request.headers['user-agent'] && { 'User-Agent': String(request.headers['user-agent']) }),
         },
         body: JSON.stringify(forwardingBody),

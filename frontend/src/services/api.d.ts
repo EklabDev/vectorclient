@@ -12,8 +12,49 @@ export interface WeaviateChunkObject {
 }
 export declare class ApiClient {
     static request<T>(endpoint: string, options?: RequestInit): Promise<T>;
-    static login(username: string, password: string): Promise<unknown>;
-    static register(username: string, password: string, email: string, displayName: string): Promise<unknown>;
+    static login(username: string, password: string, turnstileToken?: string | null): Promise<{
+        requires2FA: boolean;
+        userId: string;
+        username: string;
+        token?: string;
+        preAuthToken?: string;
+    }>;
+    static verify2FA(preAuthToken: string, code: string): Promise<{
+        userId: string;
+        username: string;
+        token: string;
+    }>;
+    static register(username: string, password: string, email: string, displayName: string, turnstileToken?: string | null): Promise<{
+        userId: string;
+        username: string;
+        token: string;
+    }>;
+    static getProfile(): Promise<{
+        id: string;
+        username: string;
+        email: string;
+        displayName: string;
+        twoFactorEnabled: boolean;
+        createdAt: string;
+    }>;
+    static changePassword(currentPassword: string, newPassword: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    static setup2FA(): Promise<{
+        secret: string;
+        qrCodeDataUrl: string;
+        backupCodes: string[];
+        otpauthUrl: string;
+    }>;
+    static confirm2FA(secret: string, code: string, backupCodes: string[]): Promise<{
+        success: boolean;
+        message: string;
+    }>;
+    static disable2FA(password: string): Promise<{
+        success: boolean;
+        message: string;
+    }>;
     static getEndpoints(): Promise<unknown>;
     static getEndpoint(id: string): Promise<unknown>;
     static createEndpoint(data: any): Promise<unknown>;

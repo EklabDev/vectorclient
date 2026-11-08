@@ -49,6 +49,13 @@ const GATEWAY_TYPES: Array<{ type: string; props: string[] }> = [
       'createdAt STRING',
       'updatedAt STRING',
       'isActive BOOLEAN',
+      'failedLoginAttempts INTEGER',
+      'lockoutUntil STRING',
+      'twoFactorEnabled BOOLEAN',
+      'twoFactorSecret STRING',
+      'twoFactorBackupCodes STRING',
+      'passwordChangedAt STRING',
+      'tokenVersion INTEGER',
     ],
   },
   {

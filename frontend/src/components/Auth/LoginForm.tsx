@@ -1,22 +1,50 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { TurnstileWidget } from '../Common/TurnstileWidget';
 
 export function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-  const { login } = useAuthStore();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 2FA Challenge state
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [preAuthToken, setPreAuthToken] = useState('');
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+
+  const navigate = useNavigate();
+  const { login, verify2FA } = useAuthStore();
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      await login(username, password);
+      const res = await login(username, password, turnstileToken);
+      if (res.requires2FA && res.preAuthToken) {
+        setRequires2FA(true);
+        setPreAuthToken(res.preAuthToken);
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handle2FASubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await verify2FA(preAuthToken, twoFactorCode);
       navigate('/dashboard');
     } catch (err) {
       setError((err as Error).message);
@@ -25,8 +53,88 @@ export function LoginForm() {
     }
   };
 
+  if (requires2FA) {
+    return (
+      <form onSubmit={handle2FASubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 6 }}>
+          <div style={{ fontSize: 24, marginBottom: 6 }}>🔐</div>
+          <h2 style={{ fontSize: 16, fontWeight: 600, margin: '0 0 6px', color: '#111827' }}>
+            Two-Factor Authentication
+          </h2>
+          <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+            Enter the 6-digit code from your authenticator app or an 8-character recovery backup code.
+          </p>
+        </div>
+
+        <input
+          type="text"
+          placeholder="e.g. 123456 or a1b2-c3d4"
+          value={twoFactorCode}
+          onChange={(e) => setTwoFactorCode(e.target.value)}
+          autoFocus
+          required
+          style={{
+            padding: '12px',
+            borderRadius: '6px',
+            border: '1px solid #e5e7eb',
+            backgroundColor: '#f9fafb',
+            color: '#111827',
+            fontSize: '16px',
+            letterSpacing: '2px',
+            textAlign: 'center',
+            fontWeight: 600,
+          }}
+        />
+
+        {error && (
+          <p style={{ color: '#b91c1c', margin: 0, fontSize: '13px', textAlign: 'center' }}>
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading || !twoFactorCode.trim()}
+          style={{
+            padding: '10px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            backgroundColor: loading ? '#9ca3af' : '#0d9488',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 600,
+            fontSize: '14px',
+          }}
+        >
+          {loading ? 'Verifying...' : 'Verify & Continue'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setRequires2FA(false);
+            setPreAuthToken('');
+            setTwoFactorCode('');
+            setError('');
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#6b7280',
+            fontSize: '13px',
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            marginTop: 4,
+          }}
+        >
+          Back to standard login
+        </button>
+      </form>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+    <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       <input
         type="text"
         placeholder="Username"
@@ -39,7 +147,7 @@ export function LoginForm() {
           border: '1px solid #e5e7eb',
           backgroundColor: '#f9fafb',
           color: '#111827',
-          fontSize: '14px'
+          fontSize: '14px',
         }}
       />
       <input
@@ -54,21 +162,43 @@ export function LoginForm() {
           border: '1px solid #e5e7eb',
           backgroundColor: '#f9fafb',
           color: '#111827',
-          fontSize: '14px'
+          fontSize: '14px',
         }}
       />
-      {error && <p style={{ color: '#b91c1c', margin: 0, fontSize: '14px' }}>{error}</p>}
+
+      <TurnstileWidget
+        onVerify={(token) => setTurnstileToken(token)}
+        onExpire={() => setTurnstileToken(null)}
+      />
+
+      {error && (
+        <div
+          style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#991b1b',
+            borderRadius: 6,
+            padding: '8px 12px',
+            fontSize: '13px',
+            lineHeight: 1.4,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       <button
         type="submit"
         disabled={loading}
         style={{
           padding: '10px',
           cursor: loading ? 'not-allowed' : 'pointer',
-          backgroundColor: loading ? '#e5e7eb' : '#0d9488',
-          color: '#111827',
+          backgroundColor: loading ? '#9ca3af' : '#0d9488',
+          color: '#ffffff',
           border: 'none',
           borderRadius: '6px',
-          fontWeight: '500'
+          fontWeight: 600,
+          fontSize: '14px',
         }}
       >
         {loading ? 'Logging in...' : 'Login'}

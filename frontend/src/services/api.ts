@@ -57,17 +57,87 @@ export class ApiClient {
   }
 
   // Auth
-  static login(username: string, password: string) {
-    return this.request('/auth/login', {
+  static login(username: string, password: string, turnstileToken?: string | null) {
+    return this.request<{
+      requires2FA: boolean;
+      userId: string;
+      username: string;
+      token?: string;
+      preAuthToken?: string;
+    }>('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, turnstileToken }),
     });
   }
 
-  static register(username: string, password: string, email: string, displayName: string) {
-    return this.request('/auth/register', {
+  static verify2FA(preAuthToken: string, code: string) {
+    return this.request<{
+      userId: string;
+      username: string;
+      token: string;
+    }>('/auth/2fa/verify', {
       method: 'POST',
-      body: JSON.stringify({ username, password, email, displayName }),
+      body: JSON.stringify({ preAuthToken, code }),
+    });
+  }
+
+  static register(
+    username: string,
+    password: string,
+    email: string,
+    displayName: string,
+    turnstileToken?: string | null
+  ) {
+    return this.request<{
+      userId: string;
+      username: string;
+      token: string;
+    }>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, email, displayName, turnstileToken }),
+    });
+  }
+
+  static getProfile() {
+    return this.request<{
+      id: string;
+      username: string;
+      email: string;
+      displayName: string;
+      twoFactorEnabled: boolean;
+      createdAt: string;
+    }>('/auth/profile');
+  }
+
+  static changePassword(currentPassword: string, newPassword: string) {
+    return this.request<{ success: boolean; message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  }
+
+  static setup2FA() {
+    return this.request<{
+      secret: string;
+      qrCodeDataUrl: string;
+      backupCodes: string[];
+      otpauthUrl: string;
+    }>('/auth/2fa/setup', {
+      method: 'POST',
+    });
+  }
+
+  static confirm2FA(secret: string, code: string, backupCodes: string[]) {
+    return this.request<{ success: boolean; message: string }>('/auth/2fa/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ secret, code, backupCodes }),
+    });
+  }
+
+  static disable2FA(password: string) {
+    return this.request<{ success: boolean; message: string }>('/auth/2fa/disable', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
     });
   }
 

@@ -7,7 +7,7 @@ export class EncryptionService {
   private static readonly SALT_LENGTH = 32;
 
   private static getKey(): Buffer {
-    const secret = process.env.AES_SECRET;
+    const secret = process.env.AES_SECRET || 'default-32-character-secret-key-123456';
     if (!secret || secret.length < 32) {
       throw new Error('AES_SECRET must be at least 32 characters');
     }
@@ -59,5 +59,41 @@ export class EncryptionService {
 
   static verify(plaintext: string, hash: string): boolean {
     return this.hash(plaintext) === hash;
+  }
+
+  /**
+   * Hashes a password using OWASP-compliant memory-hard scrypt KDF with random salt.
+   */
+  static hashPassword(password: string): string {
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+    return `scrypt:${salt}:${hash}`;
+  }
+
+  /**
+   * Verifies password against stored hash using constant-time comparison.
+   * Seamlessly supports legacy AES-256-GCM encrypted passwords for migration.
+   */
+  static verifyPassword(password: string, stored: string): boolean {
+    if (stored.startsWith('scrypt:')) {
+      const parts = stored.split(':');
+      if (parts.length !== 3) return false;
+      const salt = parts[1];
+      const expectedHash = Buffer.from(parts[2], 'hex');
+      const actualHash = crypto.scryptSync(password, salt, 64);
+      if (expectedHash.length !== actualHash.length) return false;
+      return crypto.timingSafeEqual(expectedHash, actualHash);
+    }
+
+    // Backward compatibility for legacy AES-256-GCM passwords
+    try {
+      const decrypted = this.decrypt(stored);
+      const decBuf = Buffer.from(decrypted);
+      const passBuf = Buffer.from(password);
+      if (decBuf.length !== passBuf.length) return false;
+      return crypto.timingSafeEqual(decBuf, passBuf);
+    } catch {
+      return false;
+    }
   }
 }

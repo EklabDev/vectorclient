@@ -8,6 +8,7 @@ import { EndpointsPage } from './pages/endpoints';
 import { SchemasPage } from './pages/schemas';
 import { TokensPage } from './pages/tokens';
 import { ScrapeSourcesPage } from './pages/scrape';
+import { ProfilePage } from './pages/profile';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/schemas" element={<SchemasPage />} />
           <Route path="/scrape" element={<ScrapeSourcesPage />} />
           <Route path="/tokens" element={<TokensPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
         </Route>
 
         {/* Fallback */}

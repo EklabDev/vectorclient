@@ -8,6 +8,7 @@ const NAV = [
   { to: '/schemas', label: 'Knowledge', icon: '☰' },
   { to: '/scrape', label: 'Scrape', icon: '◎' },
   { to: '/tokens', label: 'Tokens', icon: '⚿' },
+  { to: '/profile', label: 'Profile & 2FA', icon: '🛡' },
 ];
 
 export function Layout() {

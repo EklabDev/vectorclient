@@ -59,3 +59,44 @@ export async function rateLimitPreHandler(request: FastifyRequest, reply: Fastif
   await rateLimitMiddleware(request, reply);
   if (reply.sent) return;
 }
+
+const authBuckets = new Map<string, RateLimitBucket>();
+
+export async function authRateLimitMiddleware(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const ip = request.ip || 'unknown';
+    const limit = 20; // 20 requests per minute
+    const windowMs = 60000;
+    const bucketKey = `auth-rl-${ip}`;
+
+    if (RedisService.isEnabled()) {
+      const allowed = await RedisService.consumeRateLimit(bucketKey, limit, windowMs);
+      if (!allowed) {
+        reply.code(429).send({ message: 'Too many authentication attempts. Please slow down.' });
+        return;
+      }
+      return;
+    }
+
+    const now = Date.now();
+    let bucket = authBuckets.get(bucketKey);
+    if (!bucket) {
+      bucket = { tokens: limit, lastRefill: now };
+    } else {
+      const elapsed = now - bucket.lastRefill;
+      const tokensToAdd = (elapsed / windowMs) * limit;
+      bucket.tokens = Math.min(limit, bucket.tokens + tokensToAdd);
+      bucket.lastRefill = now;
+    }
+
+    if (bucket.tokens < 1) {
+      reply.code(429).send({ message: 'Too many authentication attempts. Please slow down.' });
+      return;
+    }
+
+    bucket.tokens -= 1;
+    authBuckets.set(bucketKey, bucket);
+  } catch (error) {
+    console.error('Auth rate limit check failed:', error);
+  }
+}

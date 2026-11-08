@@ -13,6 +13,13 @@ export type UserDoc = {
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+  failedLoginAttempts?: number;
+  lockoutUntil?: string | null;
+  twoFactorEnabled?: boolean;
+  twoFactorSecret?: string | null;
+  twoFactorBackupCodes?: string | null;
+  passwordChangedAt?: string | null;
+  tokenVersion?: number;
 };
 
 export type ApiTokenDoc = {

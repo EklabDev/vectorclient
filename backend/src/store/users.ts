@@ -23,6 +23,12 @@ export const Users = {
       email: input.email,
       displayName: input.displayName,
       isActive: true,
+      failedLoginAttempts: 0,
+      lockoutUntil: null,
+      twoFactorEnabled: false,
+      twoFactorSecret: null,
+      twoFactorBackupCodes: null,
+      tokenVersion: 1,
       createdAt: now,
       updatedAt: now,
     });
