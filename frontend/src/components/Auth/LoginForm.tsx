@@ -67,11 +67,21 @@ export function LoginForm() {
         </div>
 
         <input
+          id="twoFactorCode"
+          name="twoFactorCode"
           type="text"
           placeholder="e.g. 123456 or a1b2-c3d4"
           value={twoFactorCode}
           onChange={(e) => setTwoFactorCode(e.target.value)}
           autoFocus
+          autoComplete="one-time-code"
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+          inputMode="text"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           required
           style={{
             padding: '12px',
@@ -137,6 +147,9 @@ export function LoginForm() {
     <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
       <input
         type="text"
+        id="username"
+        name="username"
+        autoComplete="username"
         placeholder="Username"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
@@ -152,6 +165,9 @@ export function LoginForm() {
       />
       <input
         type="password"
+        id="password"
+        name="password"
+        autoComplete="current-password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}

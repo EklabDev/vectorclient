@@ -484,11 +484,21 @@ export function ProfilePage() {
                 {/* Confirm Code Form */}
                 <form onSubmit={handleConfirm2FA} style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                   <input
+                    id="twoFactorVerificationCode"
+                    name="twoFactorVerificationCode"
                     type="text"
                     placeholder="Enter 6-digit code"
                     value={verificationCode}
                     onChange={(e) => setVerificationCode(e.target.value)}
                     maxLength={6}
+                    autoComplete="one-time-code"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
+                    inputMode="numeric"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     required
                     style={{
                       flex: 1,
