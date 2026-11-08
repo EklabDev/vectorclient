@@ -1,8 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ApiClient } from '../../services/api';
+
+// Cloudflare official dummy sitekey (Always passes verification in dev/sandbox)
+const CLOUDFLARE_TEST_SITEKEY = '1x00000000000000000000AA';
 
 declare global {
   interface Window {
+    __ENV__?: Record<string, string>;
     turnstile?: {
+      ready: (fn: () => void) => void;
       render: (
         container: HTMLElement | string,
         params: {
@@ -16,7 +22,6 @@ declare global {
       reset: (widgetId: string) => void;
       remove: (widgetId: string) => void;
     };
-    onTurnstileLoaded?: () => void;
   }
 }
 
@@ -29,26 +34,68 @@ interface TurnstileWidgetProps {
 export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const siteKey = (import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '').trim();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [activeSiteKey, setActiveSiteKey] = useState<string | null>(null);
 
+  // 1. Resolve Site Key at RUNTIME from backend API, window.__ENV__, or build-time fallback
   useEffect(() => {
-    if (!siteKey || !containerRef.current) return;
+    let isMounted = true;
+
+    async function resolveRuntimeKey() {
+      // Check window.__ENV__ if injected at container startup
+      const windowKey = window.__ENV__?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY;
+      if (windowKey?.trim()) {
+        if (isMounted) setActiveSiteKey(windowKey.trim());
+        return;
+      }
+
+      // Fetch runtime configuration from backend
+      try {
+        const config = await ApiClient.getAuthConfig();
+        if (isMounted && config.turnstileSiteKey?.trim()) {
+          setActiveSiteKey(config.turnstileSiteKey.trim());
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not fetch runtime Turnstile config from server:', err);
+      }
+
+      // Fallback: build-time Vite env or Cloudflare test key
+      const buildKey = (import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '').trim();
+      if (isMounted) {
+        setActiveSiteKey(buildKey || CLOUDFLARE_TEST_SITEKEY);
+      }
+    }
+
+    resolveRuntimeKey();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Once runtime site key is resolved, render Turnstile widget
+  useEffect(() => {
+    if (!containerRef.current || !activeSiteKey) return;
 
     let isMounted = true;
 
-    const renderWidget = () => {
+    const render = () => {
       if (!isMounted || !containerRef.current || !window.turnstile) return;
-      if (widgetIdRef.current) return; // already rendered
+      if (widgetIdRef.current) return; // avoid duplicate widgets
 
       try {
         const id = window.turnstile.render(containerRef.current, {
-          sitekey: siteKey,
+          sitekey: activeSiteKey,
           theme,
           callback: (token: string) => {
             if (isMounted) onVerify(token);
           },
           'expired-callback': () => {
             if (isMounted && onExpire) onExpire();
+          },
+          'error-callback': (err: unknown) => {
+            console.warn('Turnstile widget challenge error:', err);
           },
         });
         widgetIdRef.current = id;
@@ -57,24 +104,48 @@ export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: Turnsti
       }
     };
 
-    if (window.turnstile) {
-      renderWidget();
-    } else {
-      const existingScript = document.getElementById('cf-turnstile-script');
-      if (!existingScript) {
-        const script = document.createElement('script');
+    const attachScriptAndRender = () => {
+      if (window.turnstile) {
+        if (typeof window.turnstile.ready === 'function') {
+          window.turnstile.ready(render);
+        } else {
+          render();
+        }
+        return;
+      }
+
+      let script = document.getElementById('cf-turnstile-script') as HTMLScriptElement | null;
+      if (!script) {
+        script = document.createElement('script');
         script.id = 'cf-turnstile-script';
         script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
         script.async = true;
         script.defer = true;
-        script.onload = () => {
-          renderWidget();
+        script.onerror = () => {
+          if (isMounted) setLoadError('Unable to load Cloudflare Turnstile script.');
         };
         document.head.appendChild(script);
-      } else {
-        existingScript.addEventListener('load', renderWidget);
       }
-    }
+
+      const checkInterval = setInterval(() => {
+        if (!isMounted) {
+          clearInterval(checkInterval);
+          return;
+        }
+        if (window.turnstile) {
+          clearInterval(checkInterval);
+          if (typeof window.turnstile.ready === 'function') {
+            window.turnstile.ready(render);
+          } else {
+            render();
+          }
+        }
+      }, 50);
+
+      setTimeout(() => clearInterval(checkInterval), 8000);
+    };
+
+    attachScriptAndRender();
 
     return () => {
       isMounted = false;
@@ -85,23 +156,25 @@ export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: Turnsti
         widgetIdRef.current = null;
       }
     };
-  }, [siteKey, theme, onVerify, onExpire]);
-
-  if (!siteKey) {
-    // In dev without site key, show subtle indicator or nothing
-    return null;
-  }
+  }, [activeSiteKey, theme, onVerify, onExpire]);
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        margin: '10px 0',
-        minHeight: 65,
-      }}
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '8px 0' }}>
+      <div
+        ref={containerRef}
+        style={{
+          minHeight: 65,
+          minWidth: 300,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      />
+      {loadError && (
+        <span style={{ fontSize: 12, color: '#dc2626', marginTop: 4 }}>
+          {loadError}
+        </span>
+      )}
+    </div>
   );
 }
-

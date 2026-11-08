@@ -56,6 +56,26 @@ export class ApiClient {
     return response.json();
   }
 
+  // Cached runtime auth config
+  private static cachedAuthConfig: { turnstileSiteKey: string; turnstileConfigured: boolean } | null = null;
+
+  static async getAuthConfig() {
+    if (this.cachedAuthConfig) return this.cachedAuthConfig;
+    try {
+      const config = await this.request<{
+        turnstileSiteKey: string;
+        turnstileConfigured: boolean;
+      }>('/auth/config');
+      this.cachedAuthConfig = config;
+      return config;
+    } catch {
+      return {
+        turnstileSiteKey: '1x00000000000000000000AA',
+        turnstileConfigured: false,
+      };
+    }
+  }
+
   // Auth
   static login(username: string, password: string, turnstileToken?: string | null) {
     return this.request<{

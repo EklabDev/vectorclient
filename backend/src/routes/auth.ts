@@ -40,6 +40,22 @@ const disable2FASchema = z.object({
 });
 
 export async function authRoutes(app: FastifyInstance) {
+  // Public runtime auth configuration (e.g. Turnstile public site key)
+  app.get('/config', async () => {
+    const siteKey =
+      process.env.CLOUDFLARE_TURNSTILE_SITE_KEY?.trim() ||
+      '1x00000000000000000000AA';
+    const isConfigured = Boolean(
+      process.env.CLOUDFLARE_TURNSTILE_SITE_KEY?.trim() &&
+        process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY?.trim()
+    );
+
+    return {
+      turnstileSiteKey: siteKey,
+      turnstileConfigured: isConfigured,
+    };
+  });
+
   // Register with rate limiting and optional Cloudflare Turnstile
   app.post('/register', { preHandler: authRateLimitMiddleware }, async (request, reply) => {
     try {

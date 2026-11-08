@@ -12,6 +12,11 @@ export interface WeaviateChunkObject {
 }
 export declare class ApiClient {
     static request<T>(endpoint: string, options?: RequestInit): Promise<T>;
+    private static cachedAuthConfig;
+    static getAuthConfig(): Promise<{
+        turnstileSiteKey: string;
+        turnstileConfigured: boolean;
+    }>;
     static login(username: string, password: string, turnstileToken?: string | null): Promise<{
         requires2FA: boolean;
         userId: string;
