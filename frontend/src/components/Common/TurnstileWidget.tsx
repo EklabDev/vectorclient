@@ -33,31 +33,38 @@ interface TurnstileWidgetProps {
 export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const onVerifyRef = useRef(onVerify);
+  const onExpireRef = useRef(onExpire);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Synchronously resolve site key from window.__ENV__ (injected from docker-compose .env)
-  // or build-time Vite env, or test key
-  const [activeSiteKey, setActiveSiteKey] = useState<string>(() => {
-    const runtimeKey = window.__ENV__?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY?.trim();
-    if (runtimeKey) return runtimeKey;
+  // Keep callback refs up to date without re-triggering widget mount/unmount
+  onVerifyRef.current = onVerify;
+  onExpireRef.current = onExpire;
+
+  const [activeSiteKey, setActiveSiteKey] = useState<string | null>(() => {
     const buildKey = (import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '').trim();
-    return buildKey || CLOUDFLARE_TEST_SITEKEY;
+    return buildKey || null;
   });
 
-  // Optional background sync with backend if no runtime key was injected via Docker
+  // Fetch runtime site key from backend /auth/config (reads CLOUDFLARE_TURNSTILE_SITE_KEY from .env)
   useEffect(() => {
-    if (window.__ENV__?.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY?.trim()) {
-      return; // already have runtime key from docker-compose
+    const buildKey = (import.meta.env.VITE_CLOUDFLARE_TURNSTILE_SITE_KEY || '').trim();
+    if (buildKey) {
+      return;
     }
 
     let isMounted = true;
     ApiClient.getAuthConfig()
       .then((config) => {
-        if (isMounted && config.turnstileSiteKey?.trim()) {
-          setActiveSiteKey(config.turnstileSiteKey.trim());
-        }
+        if (!isMounted) return;
+        const runtimeKey = config.turnstileSiteKey?.trim();
+        setActiveSiteKey(runtimeKey || CLOUDFLARE_TEST_SITEKEY);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (isMounted) {
+          setActiveSiteKey(CLOUDFLARE_TEST_SITEKEY);
+        }
+      });
 
     return () => {
       isMounted = false;
@@ -79,10 +86,10 @@ export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: Turnsti
           sitekey: activeSiteKey,
           theme,
           callback: (token: string) => {
-            if (isMounted) onVerify(token);
+            if (isMounted) onVerifyRef.current(token);
           },
           'expired-callback': () => {
-            if (isMounted && onExpire) onExpire();
+            if (isMounted && onExpireRef.current) onExpireRef.current();
           },
           'error-callback': (err: unknown) => {
             console.warn('Turnstile challenge error:', err);
@@ -114,7 +121,7 @@ export function TurnstileWidget({ onVerify, onExpire, theme = 'light' }: Turnsti
         widgetIdRef.current = null;
       }
     };
-  }, [activeSiteKey, theme, onVerify, onExpire]);
+  }, [activeSiteKey, theme]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '8px 0' }}>
